@@ -3,7 +3,7 @@ import os
 from setup_utils import include_directory
 from setuptools import find_packages, setup
 
-package_name = "ros2_example_package"
+package_name = "state_machine"
 
 setup(
     name=package_name,
@@ -23,14 +23,14 @@ setup(
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="Smart Rollerz",
+    maintainer="DHBW Smart Rollerz",
     maintainer_email="info@dhbw-smartrollerz.org",
     description="TODO: Package description",
     license="TODO: License declaration",
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            f"ros2_example_node = {package_name}.ros2_example_node:main",
+            f"state_machine_node = {package_name}.state_machine_node:main",
         ],
     },
 )

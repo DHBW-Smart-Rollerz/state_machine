@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ros2_example_package</name>
+  <name>state_machine</name>
   <version>0.0.0</version>
-  <description>The ros2_example_package package</description>
+  <description>The state_machine package</description>
   <maintainer email="info@dhbw-smartrollerz.org">DHBW Smart Rollerz</maintainer>
   <license>TODO: License declaration</license>
 
