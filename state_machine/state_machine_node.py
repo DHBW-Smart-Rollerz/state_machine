@@ -1,7 +1,10 @@
 import rclpy
 import rclpy.node
 import rclpy.wait_for_message
+import yasmin
 from ament_index_python.packages import get_package_share_directory
+
+from state_machine import states
 
 
 class StateMachine(rclpy.node.Node):
@@ -20,7 +23,13 @@ class StateMachine(rclpy.node.Node):
         self.load_ros_params()
         self.init_publisher_and_subscriber()
 
+        self.init_state_machine()
+
         self.get_logger().info("State Machine initialized")
+
+        # Execute the state machine
+        outcome = self.sm()
+        self.get_logger().info(f"State Machine finished with outcome: {outcome}")
 
     def load_ros_params(self):
         """Gets the parameters from the ROS parameter server."""
@@ -42,6 +51,28 @@ class StateMachine(rclpy.node.Node):
         if self.debug:
             pass
 
+    def init_state_machine(self):
+        """Create the state machine."""
+
+        self.sm = yasmin.StateMachine(outcomes=["done"])
+        self.blackboard = yasmin.Blackboard()
+
+        self.sm.add_state(
+            name=states.StartboxState.NAME,
+            state=states.StartboxState(),
+            transitions=states.StartboxState.TRANSITIONS,
+        )
+        self.sm.add_state(
+            name=states.DrivingState.NAME,
+            state=states.DrivingState(),
+            transitions=states.DrivingState.TRANSITIONS,
+        )
+        self.sm.add_state(
+            name=states.IntersectionState.NAME,
+            state=states.IntersectionState(),
+            transitions=states.IntersectionState.TRANSITIONS,
+        )
+
 
 def main(args=None):
     """
@@ -53,22 +84,11 @@ def main(args=None):
     rclpy.init(args=args)
     node = StateMachine()
 
-    # We have 2 options on how to run the node:
-    # 1. Let the node idle in the background with 'rclpy.spin(node)' if we want to let
-    #   subscriber callback function handle the execution of our code.
-    #   TODO: is it possible in this way, that our callback gets executed multiple times
-    #       in parallel?
-    # 2. Run the node in a while loop that waits for incoming messages and then executes
-    #   our code. This makes sure that always the latest message is processed and never
-    #   multiple messages in parallel. It should be used if the processing of the
-    #   message/execution of our code takes longer than the time between incoming #
-    #   messages.
-
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        pass
-
+        if node.sm.is_running():
+            node.sm.cancel_state()
     finally:
         node.destroy_node()
 

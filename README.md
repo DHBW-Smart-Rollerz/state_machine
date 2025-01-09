@@ -4,6 +4,29 @@
 
 This repository contains the state machine package for ros2 (python).
 
+## State Machine Concept
+
+The state machine has for each discipline a separate FSM that are all contained in one top level state machine.
+
+### Free Drive
+#### States
+- Start = while being in the startbox and waiting for it to open
+- Driving = while driving around the track
+
+
+### Obstacle Avoidance
+#### States
+The different states in the obstacle avoidance more 
+- Start = while being in the startbox and waiting for it to open
+- Driving = while driving normally without any specific scenario
+- Parking = while being in parking area
+- No-Passing Zone = while being in the no-passing zone
+- Expressway = while being in the expressway
+- Pedestrian Crossing = when a pedestrian crossing is detected until it is passed
+- Intersection = when an intersection is detected until it is passed (can be divided down into the different intersection types)
+- Overtaking = when an obstacle is detected until it is fully passed
+
+
 ## Structure
 
 - `config/`: All configurations (most of the time yaml files)
