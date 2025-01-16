@@ -25,6 +25,7 @@ The different states in the obstacle avoidance more
 - Pedestrian Crossing = when a pedestrian crossing is detected until it is passed
 - Intersection = when an intersection is detected until it is passed (can be divided down into the different intersection types)
 - Overtaking = when an obstacle is detected until it is fully passed
+- Barred Area = when in front of a barred area until it is passed
 
 
 ## Structure
