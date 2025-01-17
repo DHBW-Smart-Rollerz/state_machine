@@ -1,4 +1,3 @@
-from numpy import std
 import rclpy
 import rclpy.node
 import rclpy.wait_for_message
@@ -6,6 +5,7 @@ import std_msgs.msg
 import yasmin
 import yasmin_viewer
 from ament_index_python.packages import get_package_share_directory
+from numpy import std
 
 from state_machine import states
 
@@ -53,17 +53,16 @@ class StateMachine(rclpy.node.Node):
 
     def init_publisher_and_subscriber(self):
         """Initializes the subscribers and publishers."""
-        
         self.object_subscriber = self.create_subscription(
             msg_type=std_msgs.msg.Float32MultiArray,
             topic="/object_detection/objects",
+        )
 
         if self.debug:
             pass
 
     def init_state_machine(self):
         """Create the state machine."""
-
         self.sm = yasmin.StateMachine(outcomes=["done"])
         self.blackboard = yasmin.Blackboard()
 
@@ -116,10 +115,11 @@ class StateMachine(rclpy.node.Node):
     def object_callback(self, msg):
         """Callback function for the object detection object subscriber."""
         pass
-    
+
     def sign_callback(self, msg):
         """Callback function for the object detection sign subscriber."""
         pass
+
 
 def main(args=None):
     """
