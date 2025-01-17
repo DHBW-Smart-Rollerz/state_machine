@@ -1,9 +1,9 @@
 import yasmin
 
-from state_machine.states.smarty import SmartyState
+from state_machine.components.base_state import BaseState
 
 
-class ParkingState(SmartyState):
+class ParkingState(BaseState):
     """Parking state class."""
 
     NAME = "parking"

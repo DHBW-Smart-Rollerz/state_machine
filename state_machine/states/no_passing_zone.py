@@ -1,9 +1,9 @@
 import yasmin
 
-from state_machine.states.smarty import SmartyState
+from state_machine.components.base_state import BaseState
 
 
-class NoPassingZoneState(SmartyState):
+class NoPassingZoneState(BaseState):
     """NoPassingZone state class."""
 
     NAME = "no_passing_zone"

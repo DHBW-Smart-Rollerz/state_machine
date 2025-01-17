@@ -1,14 +1,14 @@
 import yasmin
 
 
-class SmartyState(yasmin.State):
+class BaseState(yasmin.State):
     """Default state for Smarty."""
 
     NAME = "smarty"
     TRANSITIONS = {}
 
     def __init__(self):
-        """Initialize the state."""
+        """Initialize the BaseState."""
         super().__init__(outcomes=list(self.TRANSITIONS.keys()))
         yasmin.YASMIN_LOG_INFO(f"Entering {self.NAME} state")
 

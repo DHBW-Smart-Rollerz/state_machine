@@ -51,7 +51,7 @@ class StateMachine(rclpy.node.Node):
         }
 
         # Execute the state machine
-        outcome = self.sm()
+        outcome = self.sm(self.blackboard)
         self.get_logger().info(f"State Machine finished with outcome: {outcome}")
 
     def load_ros_params(self):

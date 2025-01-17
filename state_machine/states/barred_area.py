@@ -1,9 +1,9 @@
 import yasmin
 
-from state_machine.states.smarty import SmartyState
+from state_machine.components.base_state import BaseState
 
 
-class BarredAreaState(SmartyState):
+class BarredAreaState(BaseState):
     """Barred area state."""
 
     NAME = "barred_area"
