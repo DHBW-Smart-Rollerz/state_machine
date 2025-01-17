@@ -8,6 +8,7 @@ from ament_index_python.packages import get_package_share_directory
 from numpy import std
 
 from state_machine import states
+from state_machine.states import STATE_NAME2STATE
 
 
 class StateMachine(rclpy.node.Node):
@@ -102,55 +103,31 @@ class StateMachine(rclpy.node.Node):
         """Create the state machine."""
         self.sm = yasmin.StateMachine(outcomes=["done"])
         self.blackboard = yasmin.Blackboard()
-
-        self.sm.add_state(
-            name=states.StartboxState.NAME,
-            state=states.StartboxState(),
-            transitions=states.StartboxState.TRANSITIONS,
-        )
-        self.sm.add_state(
-            name=states.DrivingState.NAME,
-            state=states.DrivingState(),
-            transitions=states.DrivingState.TRANSITIONS,
-        )
-        self.sm.add_state(
-            name=states.IntersectionState.NAME,
-            state=states.IntersectionState(),
-            transitions=states.IntersectionState.TRANSITIONS,
-        )
-        self.sm.add_state(
-            name=states.ParkingState.NAME,
-            state=states.ParkingState(),
-            transitions=states.ParkingState.TRANSITIONS,
-        )
-        self.sm.add_state(
-            name=states.OvertakingState.NAME,
-            state=states.OvertakingState(),
-            transitions=states.OvertakingState.TRANSITIONS,
-        )
-        self.sm.add_state(
-            name=states.CrosswalkState.NAME,
-            state=states.CrosswalkState(),
-            transitions=states.CrosswalkState.TRANSITIONS,
-        )
-        self.sm.add_state(
-            name=states.ExpressWayState.NAME,
-            state=states.ExpressWayState(),
-            transitions=states.ExpressWayState.TRANSITIONS,
-        )
-        self.sm.add_state(
-            name=states.NoPassingZoneState.NAME,
-            state=states.NoPassingZoneState(),
-            transitions=states.NoPassingZoneState.TRANSITIONS,
-        )
-        self.sm.add_state(
-            name=states.BarredAreaState.NAME,
-            state=states.BarredAreaState(),
-            transitions=states.BarredAreaState.TRANSITIONS,
-        )
+        state_classes = [
+            states.StartboxState,
+            states.DrivingState,
+            states.IntersectionState,
+            states.ParkingState,
+            states.OvertakingState,
+            states.CrosswalkState,
+            states.ExpressWayState,
+            states.NoPassingZoneState,
+            states.BarredAreaState,
+        ]
+        [self._add_state(state_class) for state_class in state_classes]
 
         if self.debug:
             yasmin_viewer.YasminViewerPub("state_machine", self.sm)
+
+    def _add_state(self, state_class: yasmin.State):
+        """
+        Add a state to the state machine.
+
+        Arguments:
+            state_class -- State Class
+        """
+        state: yasmin.State = state_class()
+        self.sm.add_state(name=state.NAME, state=state, transitions=state.TRANSITIONS)
 
     def object_callback(self, msg):
         """Callback function for the object detection object subscriber."""

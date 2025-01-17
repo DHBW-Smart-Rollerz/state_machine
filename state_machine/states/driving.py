@@ -1,47 +1,39 @@
 import yasmin
 
-from state_machine.states.barred_area import BarredAreaState
-from state_machine.states.crosswalk import CrosswalkState
-from state_machine.states.express_way import ExpressWayState
-from state_machine.states.intersection import IntersectionState
-from state_machine.states.no_passing_zone import NoPassingZoneState
-from state_machine.states.overtaking import OvertakingState
-from state_machine.states.parking import ParkingState
-
-# from state_machine.states.barred_area import (
-#     BarredAreaState,
-#     CrosswalkState,
-#     ExpressWayState,
-#     IntersectionState,
-#     NoPassingZoneState,
-#     OvertakingState,
-#     ParkingState,
-# )
+from state_machine.states.smarty import SmartyState
 
 
-class DrivingState(yasmin.State):
+class DrivingState(SmartyState):
     """Driving state."""
 
     NAME = "driving"
-    TRANSITIONS = {
-        "driving": NAME,
-        "approaching_obstacle": OvertakingState.NAME,
-        "approaching_intersection": IntersectionState.NAME,
-        "approaching_parking_area": ParkingState.NAME,
-        "approaching_barred_area": BarredAreaState.NAME,
-        "approaching_crosswalk": CrosswalkState.NAME,
-        "approaching_express_way": ExpressWayState.NAME,
-        "approaching_no_passing_zone": NoPassingZoneState.NAME,
-    }
 
     def __init__(self):
-        """Initialize the state."""
-        super().__init__(outcomes=[])
-        self.get_logger().info(f"Entering {self.NAME} state")
+        """Initialize the DrivingState."""
+        # REQUIRED (Circular import)
+        from state_machine.states.barred_area import BarredAreaState
+        from state_machine.states.crosswalk import CrosswalkState
+        from state_machine.states.express_way import ExpressWayState
+        from state_machine.states.intersection import IntersectionState
+        from state_machine.states.no_passing_zone import NoPassingZoneState
+        from state_machine.states.overtaking import OvertakingState
+        from state_machine.states.parking import ParkingState
+
+        self.TRANSITIONS = {
+            "driving": self.NAME,
+            "approaching_obstacle": OvertakingState.NAME,
+            "approaching_intersection": IntersectionState.NAME,
+            "approaching_parking_area": ParkingState.NAME,
+            "approaching_barred_area": BarredAreaState.NAME,
+            "approaching_crosswalk": CrosswalkState.NAME,
+            "approaching_express_way": ExpressWayState.NAME,
+            "approaching_no_passing_zone": NoPassingZoneState.NAME,
+        }
+        super().__init__()
 
     def execute(self, blackboard: yasmin.Blackboard) -> str:
         """
-        Execute the state.
+        Execute the DrivingState.
 
         Arguments:
             blackboard -- Blackboard object
@@ -49,7 +41,7 @@ class DrivingState(yasmin.State):
         Returns:
             str -- name of the next state
         """
-        self.get_logger().info(f"Executing {self.NAME} state")
+        super().execute(blackboard)
 
         if self._is_approaching_obstacle(blackboard):
             return "approaching_obstacle"

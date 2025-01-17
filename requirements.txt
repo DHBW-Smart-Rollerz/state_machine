@@ -1,3 +1,6 @@
 numpy
 opencv_python
 rclpy
+flask
+waitress
+expiringdict
