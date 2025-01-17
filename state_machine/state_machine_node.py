@@ -1,4 +1,3 @@
-from numpy import std
 import rclpy
 import rclpy.node
 import rclpy.wait_for_message
@@ -28,8 +27,26 @@ class StateMachine(rclpy.node.Node):
 
         self.init_state_machine()
 
-        self.get_logger().info("State Machine initialized")
-        yasmin_viewer.YasminViewerPub("state_achine", self.sm)
+        self.object_id_mapping = {  # TODO: load dynamically from yaml config file
+            "vehicle": 2,
+            "pedestrian": 10,
+        }
+        self.sign_id_mapping = {  # TODO: load dynamically from yaml config file
+            "stop": 1,
+            "no_overtaking": 3,
+            "no_overtaking_lifted": 4,
+            "fast_track": 5,
+            "fast_track_lifted": 6,
+            "speed_limit_30": 7,
+            "speed_limit_30_lifted": 8,
+            "crosswalk": 9,
+            "priority_oncoming_traffic": 13,
+            "parking": 14,
+            "turn_left": 15,
+            "turn_right": 16,
+            "give_way": 17,
+            "priority": 18,
+        }
 
         # Execute the state machine
         outcome = self.sm()
@@ -43,23 +60,43 @@ class StateMachine(rclpy.node.Node):
             namespace="",
             parameters=[
                 ("debug", False),
+                ("debug_state_topic", "/state_machine/debug/state"),
                 ("sign_topic", "/object_detection/sign"),
                 ("object_topic", "/object_detection/object"),
+                ("lights_topic", "/lights"),
+                ("speed_limit_topic", "/control/speed/limit"),
             ],
         )
 
         # Get parameters from the ROS parameter server into a local variable
         self.debug = self.get_parameter("debug").value
+        self.debug_state_topic = self.get_parameter("debug_state_topic").value
+        self.sign_topic = self.get_parameter("sign_topic").value
+        self.object_topic = self.get_parameter("object_topic").value
+        self.lights_topic = self.get_parameter("lights_topic").value
+        self.speed_limit_topic = self.get_parameter("speed_limit_topic").value
 
     def init_publisher_and_subscriber(self):
         """Initializes the subscribers and publishers."""
-        
+
+        self.sign_subscriber = self.create_subscription(
+            std_msgs.msg.Float32MultiArray, self.sign_topic, self.sign_callback, 1
+        )
         self.object_subscriber = self.create_subscription(
-            msg_type=std_msgs.msg.Float32MultiArray,
-            topic="/object_detection/objects",
+            std_msgs.msg.Float32MultiArray, self.object_topic, self.object_callback, 1
+        )
+
+        self.lights_publisher = self.create_publisher(
+            std_msgs.msg.UInt8, self.lights_topic, 1
+        )
+        self.speed_limit_publisher = self.create_publisher(
+            std_msgs.msg.Int16, self.speed_limit_topic, 1
+        )
 
         if self.debug:
-            pass
+            self.debug_state_publisher = self.create_publisher(
+                std_msgs.msg.String, self.debug_state_topic, 1
+            )
 
     def init_state_machine(self):
         """Create the state machine."""
@@ -113,13 +150,17 @@ class StateMachine(rclpy.node.Node):
             transitions=states.BarredAreaState.TRANSITIONS,
         )
 
+        if self.debug:
+            yasmin_viewer.YasminViewerPub("state_machine", self.sm)
+
     def object_callback(self, msg):
         """Callback function for the object detection object subscriber."""
         pass
-    
+
     def sign_callback(self, msg):
         """Callback function for the object detection sign subscriber."""
         pass
+
 
 def main(args=None):
     """
