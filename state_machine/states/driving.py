@@ -1,17 +1,27 @@
 import yasmin
 
-from state_machine.states import (
-    BarredAreaState,
-    CrosswalkState,
-    ExpressWayState,
-    IntersectionState,
-    NoPassingZoneState,
-    OvertakingState,
-    ParkingState,
-)
+from state_machine.states.barred_area import BarredAreaState
+from state_machine.states.crosswalk import CrosswalkState
+from state_machine.states.express_way import ExpressWayState
+from state_machine.states.intersection import IntersectionState
+from state_machine.states.no_passing_zone import NoPassingZoneState
+from state_machine.states.overtaking import OvertakingState
+from state_machine.states.parking import ParkingState
+
+# from state_machine.states.barred_area import (
+#     BarredAreaState,
+#     CrosswalkState,
+#     ExpressWayState,
+#     IntersectionState,
+#     NoPassingZoneState,
+#     OvertakingState,
+#     ParkingState,
+# )
 
 
 class DrivingState(yasmin.State):
+    """Driving state."""
+
     NAME = "driving"
     TRANSITIONS = {
         "driving": NAME,
@@ -25,10 +35,20 @@ class DrivingState(yasmin.State):
     }
 
     def __init__(self):
+        """Initialize the state."""
         super().__init__(outcomes=[])
         self.get_logger().info(f"Entering {self.NAME} state")
 
     def execute(self, blackboard: yasmin.Blackboard) -> str:
+        """
+        Execute the state.
+
+        Arguments:
+            blackboard -- Blackboard object
+
+        Returns:
+            str -- name of the next state
+        """
         self.get_logger().info(f"Executing {self.NAME} state")
 
         if self._is_approaching_obstacle(blackboard):

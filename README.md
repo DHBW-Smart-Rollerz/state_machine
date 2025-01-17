@@ -28,6 +28,14 @@ The different states in the obstacle avoidance more
 - Barred Area = when in front of a barred area until it is passed
 
 
+## Installation
+
+For the potential error where a long outdatet package 'nose' is used: File "/home/smartrollerz/.pyenv/versions/default/lib/python3.12/site-packages/nose/importer.py", line 12, in <module>
+    from imp import find_module, load_module, acquire_lock, release_lock
+ModuleNotFoundError: No module named 'imp'
+
+`pip uninstall nose` fixed it for me
+
 ## Structure
 
 - `config/`: All configurations (most of the time yaml files)
