@@ -1,6 +1,7 @@
 from state_machine.states.barred_area import BarredAreaState
 from state_machine.states.crosswalk import CrosswalkState
-from state_machine.states.driving import DrivingState
+from state_machine.states.drive import DRIVE_CONSTANTS
+from state_machine.states.drive.driving import DrivingState
 from state_machine.states.express_way import ExpressWayState
 from state_machine.states.intersection import IntersectionState
 from state_machine.states.no_passing_zone import NoPassingZoneState
@@ -26,3 +27,4 @@ class CONSTANTS:
     """CONSTANTS for the state machine."""
 
     START_BOX = START_BOX_CONSTANTS
+    DRIVE = DRIVE_CONSTANTS

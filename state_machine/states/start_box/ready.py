@@ -3,7 +3,7 @@ import time
 import yasmin
 
 from state_machine.components.base_state import BaseState
-from state_machine.states import start_box
+from state_machine.utils import Location, detectors
 
 
 class ReadyState(BaseState):
@@ -50,7 +50,9 @@ class ReadyState(BaseState):
 
         sign_dist_thresh = CONSTANTS.START_BOX.DISTANCE_THRESH
         timeout = CONSTANTS.START_BOX.READY_TIMEOUT
-        detected = start_box.detect(signs, sign_dist_thresh)
+        detected = detectors.check_dist_to_obj_sign(
+            signs, "stop", sign_dist_thresh, Location.NOT_RELEVANT
+        )
         current_time = time.perf_counter()
 
         if current_time - self._init_time > timeout:

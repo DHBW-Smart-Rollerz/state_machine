@@ -11,7 +11,7 @@ class CrosswalkState(BaseState):
     def __init__(self, debug: bool = False):
         """Initializes the CrosswalkState."""
         # REQUIRED (Circular import)
-        from state_machine.states.driving import DrivingState
+        from state_machine.states.drive.driving import DrivingState
 
         self.TRANSITIONS = {"dummy": DrivingState.NAME}  # TODO: Add transitions
         super().__init__()

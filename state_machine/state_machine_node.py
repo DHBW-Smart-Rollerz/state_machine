@@ -7,6 +7,7 @@ import yasmin_viewer
 from ament_index_python.packages import get_package_share_directory
 
 from state_machine import states
+from state_machine.utils import Location
 
 # from state_machine.states import STATE_NAME2STATE
 
@@ -111,7 +112,7 @@ class StateMachine(rclpy.node.Node):
         # Define the blackboard
         self.blackboard = yasmin.Blackboard()
         self.blackboard["debug"] = self.debug
-        self.blackboard["lane"] = 0
+        self.blackboard["car_location"] = Location.RIGHT
         self.blackboard["last_state"] = None
         self.blackboard["last_state_time_stamp"] = None
         self.blackboard["object_list"] = []

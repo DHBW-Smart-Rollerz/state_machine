@@ -4,6 +4,7 @@ import yasmin
 
 from state_machine.components.base_state import BaseState
 from state_machine.states import start_box
+from state_machine.utils import Location, detectors
 
 
 class SearchState(BaseState):
@@ -79,7 +80,9 @@ class SearchState(BaseState):
         sign_dist_thresh = CONSTANTS.START_BOX.DISTANCE_THRESH
         ready_time_thresh = CONSTANTS.START_BOX.READY_TIME_THRESH
         forget_time_thresh = CONSTANTS.START_BOX.FORGET_READY_TIME_THRESH
-        detected = start_box.detect(signs, sign_dist_thresh)
+        detected = detectors.check_dist_to_obj_sign(
+            signs, "stop", sign_dist_thresh, Location.NOT_RELEVANT
+        )
 
         current_time = time.perf_counter()
 

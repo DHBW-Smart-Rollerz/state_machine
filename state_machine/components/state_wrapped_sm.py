@@ -61,6 +61,7 @@ class StateWrappedStateMachine(BaseState):
         """Stop the state machine."""
         if self._run_sm:
             self._run_sm = False
+            self.sm.cancel_state()
             self._sm_watchdog.join()
             self._sm_thread.join()
             self._first_call = True
@@ -118,3 +119,9 @@ class StateWrappedStateMachine(BaseState):
         """
         state: yasmin.State = state_class(self.debug)
         self.sm.add_state(name=state.NAME, state=state, transitions=state.TRANSITIONS)
+
+    def cancel_state(self):
+        """Cancel the state machine."""
+        self.sm.cancel_state()
+        self.stop()
+        return super().cancel_state()
