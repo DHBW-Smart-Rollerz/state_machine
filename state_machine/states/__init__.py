@@ -5,7 +5,8 @@ from state_machine.states.drive.driving import DrivingState
 from state_machine.states.express_way import ExpressWayState
 from state_machine.states.intersection import IntersectionState
 from state_machine.states.no_passing_zone import NoPassingZoneState
-from state_machine.states.overtaking import OvertakingState
+from state_machine.states.overtake import OVERTAKE_CONSTANTS
+from state_machine.states.overtake.overtaking import OvertakingStateMachine
 from state_machine.states.parking import ParkingState
 from state_machine.states.start_box import START_BOX_CONSTANTS
 from state_machine.states.start_box.startbox import StartBoxStateMachine
@@ -18,7 +19,7 @@ __all__ = [
     "CrosswalkState",
     "ExpressWayState",
     "NoPassingZoneState",
-    "OvertakingState",
+    "OvertakingStateMachine",
     "ParkingState",
 ]
 
@@ -28,3 +29,4 @@ class CONSTANTS:
 
     START_BOX = START_BOX_CONSTANTS
     DRIVE = DRIVE_CONSTANTS
+    OVERTAKE = OVERTAKE_CONSTANTS

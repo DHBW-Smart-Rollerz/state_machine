@@ -11,13 +11,13 @@ class BaseState(yasmin.State):
     NAME = "smarty"
     TRANSITIONS = {}
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initialize the BaseState."""
         super().__init__(outcomes=list(self.TRANSITIONS.keys()))
         self._init_time = time.perf_counter()
         yasmin.YASMIN_LOG_INFO(f"Entering {self.NAME} state")
         self.blackboard: yasmin.Blackboard = None
-        self.debug: bool = False
+        self.debug: bool = debug
         self.car_location: Location = Location.UNKNOWN
         self.last_state: object = None
         self.last_state_time_stamp: int = 0

@@ -18,12 +18,12 @@ class DrivingState(BaseState):
         from state_machine.states.express_way import ExpressWayState
         from state_machine.states.intersection import IntersectionState
         from state_machine.states.no_passing_zone import NoPassingZoneState
-        from state_machine.states.overtaking import OvertakingState
+        from state_machine.states.overtake.overtaking import OvertakingStateMachine
         from state_machine.states.parking import ParkingState
 
         self.TRANSITIONS = {
             "loop": self.NAME,
-            "approaching_obstacle": OvertakingState.NAME,
+            "approaching_obstacle": OvertakingStateMachine.NAME,
             "approaching_intersection": IntersectionState.NAME,
             "approaching_parking_area": ParkingState.NAME,
             "approaching_barred_area": BarredAreaState.NAME,
@@ -89,7 +89,7 @@ class DrivingState(BaseState):
         from state_machine.states import CONSTANTS
 
         return check_dist_to_obj_sign(
-            self.object_list,
+            self.sign_list,
             ["stop", "give_way", "priority_oncoming_traffic"],
             CONSTANTS.DRIVE.INTERSECTION_THRESHOLD,
             location=Location.NOT_RELEVANT,
@@ -99,7 +99,7 @@ class DrivingState(BaseState):
         from state_machine.states import CONSTANTS
 
         return check_dist_to_obj_sign(
-            self.object_list,
+            self.sign_list,
             ["parking"],
             CONSTANTS.DRIVE.PARKING_THRESHOLD,
             location=Location.NOT_RELEVANT,
@@ -113,7 +113,7 @@ class DrivingState(BaseState):
         from state_machine.states import CONSTANTS
 
         return check_dist_to_obj_sign(
-            self.object_list,
+            self.sign_list,
             ["crosswalk"],
             CONSTANTS.DRIVE.CROSSWALK_THRESHOLD,
             location=Location.NOT_RELEVANT,
@@ -123,7 +123,7 @@ class DrivingState(BaseState):
         from state_machine.states import CONSTANTS
 
         return check_dist_to_obj_sign(
-            self.object_list,
+            self.sign_list,
             ["fast_track", "fast_track_lifted"],
             CONSTANTS.DRIVE.EXPRESS_WAY_THRESHOLD,
             location=Location.NOT_RELEVANT,
@@ -133,7 +133,7 @@ class DrivingState(BaseState):
         from state_machine.states import CONSTANTS
 
         return check_dist_to_obj_sign(
-            self.object_list,
+            self.sign_list,
             ["no_overtaking", "no_overtaking_lifted"],
             CONSTANTS.DRIVE.NO_PASSING_ZONE_THRESHOLD,
             location=Location.NOT_RELEVANT,

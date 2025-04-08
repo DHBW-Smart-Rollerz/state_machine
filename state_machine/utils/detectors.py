@@ -29,3 +29,27 @@ def check_dist_to_obj_sign(
             elif obj["location"] == location:
                 return True
     return False
+
+
+def opposite_of_location(
+    location: Location,
+) -> Location:
+    """
+    Get the opposite location of a given location.
+
+    Arguments:
+        location -- Location to get the opposite of
+
+    Returns:
+        Location -- Opposite location
+    """
+    if location == Location.LEFT:
+        return Location.RIGHT
+    elif location == Location.RIGHT:
+        return Location.LEFT
+    elif location == Location.FRONT:
+        return Location.BACK
+    elif location == Location.BACK:
+        return Location.FRONT
+    else:
+        return location

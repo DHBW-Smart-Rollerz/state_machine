@@ -123,7 +123,7 @@ class StateMachine(rclpy.node.Node):
             states.DrivingState,
             states.IntersectionState,
             states.ParkingState,
-            states.OvertakingState,
+            states.OvertakingStateMachine,
             states.CrosswalkState,
             states.ExpressWayState,
             states.NoPassingZoneState,
