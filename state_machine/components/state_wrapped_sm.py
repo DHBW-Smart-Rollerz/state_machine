@@ -1,11 +1,8 @@
 import threading
 import time
-from unittest import result
 
 import yasmin
 import yasmin_viewer
-from build.state_machine.state_machine.components import state_warpped_sm
-from pathspec import lookup_pattern
 
 from state_machine.components.base_state import BaseState
 
@@ -16,12 +13,12 @@ class StateWrappedStateMachine(BaseState):
     NAME = "concurrent"
     TRANSITIONS = {}
 
-    def __init__(self, debug: bool = False):
+    def __init__(self, state_classes: list[BaseState], debug: bool = False):
         """Initialize the state."""
         self.TRANSITIONS["loop"] = self.NAME
         super().__init__()
         self.debug = debug
-        self._init_state_machine()
+        self._init_state_machine(state_classes)
         self._run_sm = False
         self._first_call = True
         self.reset()
@@ -58,7 +55,7 @@ class StateWrappedStateMachine(BaseState):
             return "loop"
 
         self._first_call = True
-        return "done"
+        return self._outcome
 
     def stop(self):
         """Stop the state machine."""
@@ -75,6 +72,7 @@ class StateWrappedStateMachine(BaseState):
         if self._run_sm:
             yasmin.YASMIN_LOG_WARN("State machine already running")
             return
+        yasmin.YASMIN_LOG_INFO("Starting internal state machine")
         self._run_sm = True
         self._sm_thread = threading.Thread(target=self._sm_thread_fun)
         self._sm_watchdog = threading.Thread(target=self._sm_watchdog_fun)
@@ -87,7 +85,7 @@ class StateWrappedStateMachine(BaseState):
             raise ValueError("Blackboard is not set")
 
         self._run_sm = True
-        self._outcom = self.sm(self.blackboard)
+        self._outcome = self.sm(self.blackboard)
         self._run_sm = False
 
     def _sm_watchdog_fun(self):
@@ -105,7 +103,7 @@ class StateWrappedStateMachine(BaseState):
         Arguments:
             state_classes -- List of state classes
         """
-        self.sm = yasmin.StateMachine(outcomes=["done"])
+        self.sm = yasmin.StateMachine(outcomes=["done", "canceled"])
         [self._add_state(state_class) for state_class in state_classes]
 
         if self.debug:
@@ -118,5 +116,5 @@ class StateWrappedStateMachine(BaseState):
         Arguments:
             state_class -- State Class
         """
-        state: yasmin.State = state_class()
+        state: yasmin.State = state_class(self.debug)
         self.sm.add_state(name=state.NAME, state=state, transitions=state.TRANSITIONS)

@@ -8,7 +8,7 @@ class CrosswalkState(BaseState):
 
     NAME = "crosswalk"
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initializes the CrosswalkState."""
         # REQUIRED (Circular import)
         from state_machine.states.driving import DrivingState

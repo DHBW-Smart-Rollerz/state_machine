@@ -8,7 +8,7 @@ class DrivingState(BaseState):
 
     NAME = "driving"
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initialize the DrivingState."""
         # REQUIRED (Circular import)
         from state_machine.states.barred_area import BarredAreaState

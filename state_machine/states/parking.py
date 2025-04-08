@@ -8,7 +8,7 @@ class ParkingState(BaseState):
 
     NAME = "parking"
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initializes the ParkingState."""
         # REQUIRED (Circular import)
         from state_machine.states.driving import DrivingState

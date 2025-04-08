@@ -5,18 +5,19 @@ import std_msgs.msg
 import yasmin
 import yasmin_viewer
 from ament_index_python.packages import get_package_share_directory
-from numpy import std
 
 from state_machine import states
-from state_machine.states import STATE_NAME2STATE
+
+# from state_machine.states import STATE_NAME2STATE
 
 
 class StateMachine(rclpy.node.Node):
     """State Machine."""
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initialize the state machine."""
         super().__init__("state_machine")
+        self.debug = debug
 
         # Get the package path
         self.package_share_path = get_package_share_directory("state_machine")
@@ -33,6 +34,8 @@ class StateMachine(rclpy.node.Node):
             "vehicle": 2,
             "pedestrian": 10,
         }
+        self.id_object_mapping = {v: k for k, v in self.object_id_mapping.items()}
+
         self.sign_id_mapping = {  # TODO: load dynamically from yaml config file
             "stop": 1,
             "no_overtaking": 3,
@@ -49,6 +52,7 @@ class StateMachine(rclpy.node.Node):
             "give_way": 17,
             "priority": 18,
         }
+        self.id_sign_mapping = {v: k for k, v in self.sign_id_mapping.items()}
 
         # Execute the state machine
         outcome = self.sm(self.blackboard)
@@ -71,7 +75,8 @@ class StateMachine(rclpy.node.Node):
         )
 
         # Get parameters from the ROS parameter server into a local variable
-        self.debug = self.get_parameter("debug").value
+        if not self.debug:
+            self.debug = self.get_parameter("debug").value
         self.debug_state_topic = self.get_parameter("debug_state_topic").value
         self.sign_topic = self.get_parameter("sign_topic").value
         self.object_topic = self.get_parameter("object_topic").value
@@ -101,10 +106,19 @@ class StateMachine(rclpy.node.Node):
 
     def init_state_machine(self):
         """Create the state machine."""
-        self.sm = yasmin.StateMachine(outcomes=["done"])
+        self.sm = yasmin.StateMachine(outcomes=["done", "canceled"])
+
+        # Define the blackboard
         self.blackboard = yasmin.Blackboard()
+        self.blackboard["debug"] = self.debug
+        self.blackboard["lane"] = 0
+        self.blackboard["last_state"] = None
+        self.blackboard["last_state_time_stamp"] = None
+        self.blackboard["object_list"] = []
+        self.blackboard["sign_list"] = []
+
         state_classes = [
-            states.StartboxState,
+            states.StartBoxStateMachine,
             states.DrivingState,
             states.IntersectionState,
             states.ParkingState,
@@ -126,19 +140,55 @@ class StateMachine(rclpy.node.Node):
         Arguments:
             state_class -- State Class
         """
-        state: yasmin.State = state_class()
+        state: yasmin.State = state_class(self.debug)
         self.sm.add_state(name=state.NAME, state=state, transitions=state.TRANSITIONS)
 
     def object_callback(self, msg):
         """Callback function for the object detection object subscriber."""
-        pass
+        # Add the object to the blackboard
+        objects = []
+        for obj in msg.data:
+            obj_id = 0  # TODO: Extract from Topic
+            obj_position = 0  # TODO: Extract from Topic
+            obj_dist = 0  # TODO: Extract from Topic
+            obj_name = self.id_object_mapping.get(obj_id, "unknown")
+            objects.append(
+                {
+                    "id": obj_id,
+                    "position": obj_position,
+                    "distance": obj_dist,
+                    "name": obj_name,
+                    "timestamp": self.get_clock().now().nanoseconds,
+                }
+            )
+        self.blackboard.set("object_list", objects)
+        if self.debug:
+            self.get_logger().info(f"Object List: {objects}")
 
     def sign_callback(self, msg):
         """Callback function for the object detection sign subscriber."""
-        pass
+        # Add the sign to the blackboard
+        signs = []
+        for sign in msg.data:
+            sign_id = 0  # TODO: Extract from topic
+            sign_position = 0  # TODO: Extract from topic
+            sign_dist = 0  # TODO: Extract from topic
+            sign_name = self.id_sign_mapping.get(sign_id, "unknown")
+            signs.append(
+                {
+                    "id": sign_id,
+                    "position": sign_position,
+                    "distance": sign_dist,
+                    "name": sign_name,
+                    "timestamp": self.get_clock().now().nanoseconds,
+                }
+            )
+        self.blackboard.set("sign_list", signs)
+        if self.debug:
+            self.get_logger().info(f"Sign List: {signs}")
 
 
-def main(args=None):
+def main(args=None, debug: bool = False):
     """
     Main function to start the StateMachine.
 
@@ -146,7 +196,7 @@ def main(args=None):
         args -- Launch arguments (default: {None})
     """
     rclpy.init(args=args)
-    node = StateMachine()
+    node = StateMachine(debug=debug)
 
     try:
         rclpy.spin(node)
@@ -162,4 +212,4 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    main()
+    main(debug=True)

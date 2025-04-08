@@ -8,7 +8,7 @@ class NoPassingZoneState(BaseState):
 
     NAME = "no_passing_zone"
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
         """Initializes the NoPassingZoneState."""
         # REQUIRED (Circular import)
         from state_machine.states.driving import DrivingState
