@@ -1,7 +1,6 @@
 import enum
 
 import yasmin
-from flask.cli import F
 
 from state_machine.utils import Location
 
@@ -9,11 +8,11 @@ from state_machine.utils import Location
 class Light(enum.Enum):
     """Enum for light states."""
 
-    BLINK_LEFT = 0b00000001
-    BLINK_RIGHT = 0b00000010
-    NORMAL = 0b00000000
-    BRAKE = 0b00000100
-    WARNING = 0b00001000
+    BLINK_LEFT = 4
+    BLINK_RIGHT = 3
+    NORMAL = 1
+    BRAKE = 2
+    OFF = 0
 
 
 class OBJECTS(enum.Enum):
@@ -46,9 +45,9 @@ class SIGNS(enum.Enum):
 class Nodes(enum.Enum):
     """Computation Nodes."""
 
-    LANE_DETECTION = "lane_detection"
+    LANE_DETECTION = "lane_detection_ai"
     OBJECT_DETECTION = "object_detection"
-    PATH_PLANNING = "path_planning"
+    PATH_PLANNING = "pathplanning"
     CONTROL = "control"
     STATE_ESTIMATION = "state_estimation"
 
@@ -56,8 +55,8 @@ class Nodes(enum.Enum):
 class NodesModes(enum.Enum):
     """Enum for node states."""
 
-    ACTIVE = 0
-    INACTIVE = 1
+    INACTIVE = 0
+    ACTIVE = 1
     RESET = 2
 
     @staticmethod

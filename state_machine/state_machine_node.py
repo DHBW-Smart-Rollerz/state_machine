@@ -1,3 +1,4 @@
+import numpy as np
 import rclpy
 import rclpy.node
 import rclpy.wait_for_message
@@ -87,7 +88,10 @@ class StateMachine(rclpy.node.Node):
                 ("sign_topic", "/object_detection/sign"),
                 ("object_topic", "/object_detection/object"),
                 ("lights_topic", "/lights"),
-                ("speed_limit_topic", "/control/speed/limit"),
+                ("lane_detection_topic", "/lane_detection/lane"),
+                ("goal_lane_topic", "/state_machine/lane/goal"),
+                # ("speed_limit_topic", "/control/velocity/limit"),
+                ("speed_limit_topic", "/control/velocity/target"),
             ],
         )
 
@@ -99,6 +103,7 @@ class StateMachine(rclpy.node.Node):
         self.object_topic = self.get_parameter("object_topic").value
         self.lights_topic = self.get_parameter("lights_topic").value
         self.speed_limit_topic = self.get_parameter("speed_limit_topic").value
+        self.goal_lane_topic = self.get_parameter("goal_lane_topic").value
 
     def init_publisher_and_subscriber(self):
         """Initializes the subscribers and publishers."""
@@ -117,8 +122,19 @@ class StateMachine(rclpy.node.Node):
             std_msgs.msg.UInt8, self.lights_topic, 1
         )
         self.speed_limit_publisher = self.create_publisher(
-            std_msgs.msg.Int16, self.speed_limit_topic, 1
+            std_msgs.msg.Float32, self.speed_limit_topic, 1
         )
+
+        self.goal_lane_publisher = self.create_publisher(
+            std_msgs.msg.UInt8, self.goal_lane_topic, 1
+        )
+
+        self.node_publisher = {}
+        for node in Nodes:
+            name = f"/state_machine/{node.value}/status"
+            self.node_publisher[node] = self.create_publisher(
+                std_msgs.msg.UInt8, name, 1
+            )
 
         if self.debug:
             self.debug_state_publisher = self.create_publisher(
@@ -154,19 +170,19 @@ class StateMachine(rclpy.node.Node):
                 "goal_lane": self.lane_publisher_fun,
                 NodesModes.get_publisher_name(
                     Nodes.OBJECT_DETECTION
-                ): self.object_detection_mode_publisher_fun,
-                NodesModes.get_publisher_name(
+                ): self.get_publisher(Nodes.OBJECT_DETECTION),
+                NodesModes.get_publisher_name(Nodes.LANE_DETECTION): self.get_publisher(
                     Nodes.LANE_DETECTION
-                ): self.lane_detection_mode_publisher_fun,
-                NodesModes.get_publisher_name(
+                ),
+                NodesModes.get_publisher_name(Nodes.PATH_PLANNING): self.get_publisher(
                     Nodes.PATH_PLANNING
-                ): self.path_planning_mode_publisher_fun,
-                NodesModes.get_publisher_name(
+                ),
+                NodesModes.get_publisher_name(Nodes.CONTROL): self.get_publisher(
                     Nodes.CONTROL
-                ): self.control_mode_publisher_fun,
+                ),
                 NodesModes.get_publisher_name(
                     Nodes.STATE_ESTIMATION
-                ): self.state_estimation_mode_publisher_fun,
+                ): self.get_publisher(Nodes.STATE_ESTIMATION),
             },
         )
         state_classes = [
@@ -199,46 +215,69 @@ class StateMachine(rclpy.node.Node):
     # Callbacks for the subscribers
     ##############################
 
-    def object_callback(self, msg):
-        """Callback function for the object detection object subscriber."""
-        # Add the object to the blackboard
-        objects = []
-        for obj in msg.data:
-            obj_id = 0  # TODO: Extract from Topic
-            obj_position = 0  # TODO: Extract from Topic
-            obj_dist = 0  # TODO: Extract from Topic
+    def parse_float32_multiarray(self, msg: std_msgs.msg.Float32MultiArray):
+        """Parse the Float32MultiArray message."""
+        assert isinstance(msg, std_msgs.msg.Float32MultiArray), "Invalid message type"
+        return [msg.data[i] for i in range(len(msg.data))]
+
+    def _calc_dist(self, obj_position: dict) -> float:
+        """Calculate the distance from the car to the object."""
+        assert isinstance(obj_position, dict), "Invalid object position type"
+        x = obj_position["bottom_left_x"]
+        y = obj_position["bottom_left_y"]
+        left = np.linalg.norm([x, y])
+        x = obj_position["bottom_right_x"]
+        y = obj_position["bottom_right_y"]
+        right = np.linalg.norm([x, y])
+        return min(left, right)
+
+    def _create_obj_sign(self, parsed: list) -> list[dict]:
+        """
+        Create a list of objects or signs from the parsed data.
+
+        Arguments:
+            parsed -- parsed data from the Float32MultiArray message
+
+        Returns:
+            list of objects or signs
+        """
+        results = []
+        for obj in parsed:
+            len(obj) >= 6, "Invalid object data"
+            obj_id = obj[0]
+            obj_position = {
+                "bottom_left_x": obj[1],
+                "bottom_left_y": obj[2],
+                "bottom_right_x": obj[3],
+                "bottom_right_y": obj[4],
+            }
+            obj_location = Location.UNKNOWN  # TODO: Find locations
+            obj_dist = self._calc_dist(obj_position)
             obj_name = ID2OBJECT.get(obj_id, "unknown")
-            objects.append(
+            results.append(
                 {
                     "id": obj_id,
                     "position": obj_position,
                     "distance": obj_dist,
+                    "location": obj_location,
                     "name": obj_name,
                     "timestamp": self.get_clock().now().nanoseconds,
                 }
             )
+
+    def object_callback(self, msg: std_msgs.msg.Float32MultiArray):
+        """Callback function for the object detection object subscriber."""
+        # Add the object to the blackboard
+        parsed = self.parse_float32_multiarray(msg)
+        objects = self._create_obj_sign(parsed)
         self.blackboard.set("object_list", objects)
         if self.debug:
             self.get_logger().info(f"Object List: {objects}")
 
-    def sign_callback(self, msg):
+    def sign_callback(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the object detection sign subscriber."""
-        # Add the sign to the blackboard
-        signs = []
-        for sign in msg.data:
-            sign_id = 0  # TODO: Extract from topic
-            sign_position = 0  # TODO: Extract from topic
-            sign_dist = 0  # TODO: Extract from topic
-            sign_name = ID2SIGN.get(sign_id, "unknown")
-            signs.append(
-                {
-                    "id": sign_id,
-                    "position": sign_position,
-                    "distance": sign_dist,
-                    "name": sign_name,
-                    "timestamp": self.get_clock().now().nanoseconds,
-                }
-            )
+        parsed = self.parse_float32_multiarray(msg)
+        signs = self._create_obj_sign(parsed)
         self.blackboard.set("sign_list", signs)
         if self.debug:
             self.get_logger().info(f"Sign List: {signs}")
@@ -254,50 +293,60 @@ class StateMachine(rclpy.node.Node):
         self.lights_publisher.publish(msg)
         if self.debug:
             self.get_logger().info(f"Light Configuration: {light_configuration}")
+        return True
 
     def speed_limit_publisher_fun(self, max_speed: float):
         """Publish the maximum speed."""
-        msg = std_msgs.msg.Int16()
+        msg = std_msgs.msg.Float32()
         msg.data = max_speed
         self.speed_limit_publisher.publish(msg)
         if self.debug:
             self.get_logger().info(f"Max Speed: {max_speed}")
+        return True
 
     def lane_publisher_fun(self, goal_lane: Location):
         """Publish the goal lane."""
-        # TODO
+        msg = std_msgs.msg.UInt8()
+        mapping = {
+            Location.LEFT: 1,
+            Location.RIGHT: 0,
+        }
+        msg.data = mapping.get(goal_lane, 0)
+        self.goal_lane_publisher.publish(msg)
         if self.debug:
             self.get_logger().info(f"Goal Lane: {goal_lane}")
+        return True
 
-    def object_detection_mode_publisher_fun(self, mode: NodesModes):
-        """Publish the object detection mode."""
-        # TODO
-        if self.debug:
-            self.get_logger().info(f"Object Detection Mode: {mode}")
+    def get_publisher(self, node: Nodes) -> callable:
+        """
+        Get the publisher function for the node.
 
-    def lane_detection_mode_publisher_fun(self, mode: NodesModes):
-        """Publish the lane detection mode."""
-        # TODO
-        if self.debug:
-            self.get_logger().info(f"Lane Detection Mode: {mode}")
+        Arguments:
+            node -- Node to get the publisher for
 
-    def path_planning_mode_publisher_fun(self, mode: NodesModes):
-        """Publish the path planning mode."""
-        # TODO
-        if self.debug:
-            self.get_logger().info(f"Path Planning Mode: {mode}")
+        Returns:
+            Publisher function
+        """
+        return lambda mode: self.node_publisher_fun(node, mode)
 
-    def control_mode_publisher_fun(self, mode: NodesModes):
-        """Publish the control mode."""
-        # TODO
-        if self.debug:
-            self.get_logger().info(f"Control Mode: {mode}")
+    def node_publisher_fun(self, node: Nodes, mode: NodesModes):
+        """
+        Publish the node mode.
 
-    def state_estimation_mode_publisher_fun(self, mode: NodesModes):
-        """Publish the state estimation mode."""
-        # TODO
+        Arguments:
+            node -- Node to publish the mode for
+            mode -- Mode to publish
+
+        Returns:
+            True if successful, False otherwise
+        """
+        publisher = self.node_publisher[node]
+        msg = std_msgs.msg.UInt8()
+        msg.data = mode.value
+        publisher.publish(msg)
         if self.debug:
-            self.get_logger().info(f"State Estimation Mode: {mode}")
+            self.get_logger().info(f"{node.value} Mode: {mode}")
+        return True
 
 
 def main(args=None, debug: bool = False):

@@ -11,7 +11,7 @@ class DRIVE_CONSTANTS:
     OVERTAKING_THRESHOLD = 50  # mm
 
     # Parking Area Threshold
-    PARKING_AREA_THRESHOLD = 50  # mm
+    PARKING_THRESHOLD = 50  # mm
 
     # Intersection Threshold
     INTERSECTION_THRESHOLD = 50  # mm
