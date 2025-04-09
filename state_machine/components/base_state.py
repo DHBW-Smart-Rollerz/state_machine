@@ -2,6 +2,12 @@ import time
 
 import yasmin
 
+from state_machine.components.state_description import (
+    Light,
+    Nodes,
+    NodesModes,
+    StateDescription,
+)
 from state_machine.utils import Location
 
 
@@ -10,6 +16,18 @@ class BaseState(yasmin.State):
 
     NAME = "smarty"
     TRANSITIONS = {}
+    STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.BRAKE,
+        max_speed=0.0,
+        goal_lane=Location.RIGHT,
+        node_modes={
+            Nodes.OBJECT_DETECTION: NodesModes.INACTIVE,
+            Nodes.LANE_DETECTION: NodesModes.INACTIVE,
+            Nodes.PATH_PLANNING: NodesModes.INACTIVE,
+            Nodes.CONTROL: NodesModes.INACTIVE,
+            Nodes.STATE_ESTIMATION: NodesModes.INACTIVE,
+        },
+    )
 
     def __init__(self, debug: bool = False):
         """Initialize the BaseState."""
@@ -24,13 +42,21 @@ class BaseState(yasmin.State):
         self.object_list: list[dict] = []
         self.sign_list: list[dict] = []
 
-    def execute(self, blackboard: yasmin.Blackboard) -> str:
+    def execute(
+        self,
+        blackboard: yasmin.Blackboard,
+        publish_and_set_description: bool = True,
+    ) -> str:
         """
         Execute the state.
 
         Arguments:
             blackboard -- Blackboard object
         """
+        if publish_and_set_description:
+            blackboard["state_description"].publish_and_set_difference(
+                self.STATE_DESCRIPTION
+            )
         self.parse_blackboard(blackboard)
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
 

@@ -1,5 +1,6 @@
 from state_machine.components.state_wrapped_sm import StateWrappedStateMachine
-from state_machine.states import start_box
+from state_machine.states.start_box.ready import ReadyState
+from state_machine.states.start_box.search import SearchState
 
 
 class StartBoxStateMachine(StateWrappedStateMachine):
@@ -20,8 +21,8 @@ class StartBoxStateMachine(StateWrappedStateMachine):
 
         # Internal states
         state_classes = [
-            start_box.SearchState,
-            start_box.ReadyState,
+            SearchState,
+            ReadyState,
         ]
 
         super().__init__(state_classes, debug)

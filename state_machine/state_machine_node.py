@@ -6,10 +6,50 @@ import yasmin
 import yasmin_viewer
 from ament_index_python.packages import get_package_share_directory
 
-from state_machine import states
+from state_machine.components.state_description import (
+    OBJECTS,
+    SIGNS,
+    Light,
+    Nodes,
+    NodesModes,
+    StateDescription,
+)
+from state_machine.states.barred_area import BarredAreaState
+from state_machine.states.crosswalk import CrosswalkState
+from state_machine.states.drive.driving import DrivingState
+from state_machine.states.express_way import ExpressWayState
+from state_machine.states.intersection import IntersectionState
+from state_machine.states.no_passing_zone import NoPassingZoneState
+from state_machine.states.overtake.overtaking import OvertakingStateMachine
+from state_machine.states.parking import ParkingState
+from state_machine.states.start_box.startbox import StartBoxStateMachine
 from state_machine.utils import Location
 
 # from state_machine.states import STATE_NAME2STATE
+
+global OBJECT2ID, ID2OBJECT, SIGN2ID, ID2SIGN
+OBJECT2ID = {  # TODO: load dynamically from yaml config file
+    OBJECTS.VEHICLE: 2,
+    OBJECTS.PEDESTRIAN: 10,
+}
+ID2OBJECT = {v: k for k, v in OBJECT2ID.items()}
+SIGN2ID = {  # TODO: load dynamically from yaml config file
+    SIGNS.STOP: 1,
+    SIGNS.NO_OVERTAKING: 3,
+    SIGNS.NO_OVERTAKING_LIFTED: 4,
+    SIGNS.FAST_TRACK: 5,
+    SIGNS.FAST_TRACK_LIFTED: 6,
+    SIGNS.SPEED_LIMIT_30: 7,
+    SIGNS.SPEED_LIMIT_30_LIFTED: 8,
+    SIGNS.CROSSWALK: 9,
+    SIGNS.PRIORITY_ONCOMING_TRAFFIC: 13,
+    SIGNS.PARKING: 14,
+    SIGNS.TURN_LEFT: 15,
+    SIGNS.TURN_RIGHT: 16,
+    SIGNS.GIVE_WAY: 17,
+    SIGNS.PRIORITY: 18,
+}
+ID2SIGN = {v: k for k, v in SIGN2ID.items()}
 
 
 class StateMachine(rclpy.node.Node):
@@ -30,30 +70,6 @@ class StateMachine(rclpy.node.Node):
         self.init_publisher_and_subscriber()
 
         self.init_state_machine()
-
-        self.object_id_mapping = {  # TODO: load dynamically from yaml config file
-            "vehicle": 2,
-            "pedestrian": 10,
-        }
-        self.id_object_mapping = {v: k for k, v in self.object_id_mapping.items()}
-
-        self.sign_id_mapping = {  # TODO: load dynamically from yaml config file
-            "stop": 1,
-            "no_overtaking": 3,
-            "no_overtaking_lifted": 4,
-            "fast_track": 5,
-            "fast_track_lifted": 6,
-            "speed_limit_30": 7,
-            "speed_limit_30_lifted": 8,
-            "crosswalk": 9,
-            "priority_oncoming_traffic": 13,
-            "parking": 14,
-            "turn_left": 15,
-            "turn_right": 16,
-            "give_way": 17,
-            "priority": 18,
-        }
-        self.id_sign_mapping = {v: k for k, v in self.sign_id_mapping.items()}
 
         # Execute the state machine
         outcome = self.sm(self.blackboard)
@@ -86,12 +102,16 @@ class StateMachine(rclpy.node.Node):
 
     def init_publisher_and_subscriber(self):
         """Initializes the subscribers and publishers."""
+        ### Create the subscribers ###
+
         self.sign_subscriber = self.create_subscription(
             std_msgs.msg.Float32MultiArray, self.sign_topic, self.sign_callback, 1
         )
         self.object_subscriber = self.create_subscription(
             std_msgs.msg.Float32MultiArray, self.object_topic, self.object_callback, 1
         )
+
+        ### Create the publishers ###
 
         self.lights_publisher = self.create_publisher(
             std_msgs.msg.UInt8, self.lights_topic, 1
@@ -117,17 +137,48 @@ class StateMachine(rclpy.node.Node):
         self.blackboard["last_state_time_stamp"] = None
         self.blackboard["object_list"] = []
         self.blackboard["sign_list"] = []
-
+        self.blackboard["state_description"] = StateDescription(
+            light_configuration=Light.BRAKE,
+            max_speed=0.0,
+            goal_lane=Location.RIGHT,
+            node_modes={
+                Nodes.OBJECT_DETECTION: NodesModes.INACTIVE,
+                Nodes.LANE_DETECTION: NodesModes.INACTIVE,
+                Nodes.PATH_PLANNING: NodesModes.INACTIVE,
+                Nodes.CONTROL: NodesModes.INACTIVE,
+                Nodes.STATE_ESTIMATION: NodesModes.INACTIVE,
+            },
+            publishers={
+                "light_configuration": self.lights_publisher_fun,
+                "max_speed": self.speed_limit_publisher_fun,
+                "goal_lane": self.lane_publisher_fun,
+                NodesModes.get_publisher_name(
+                    Nodes.OBJECT_DETECTION
+                ): self.object_detection_mode_publisher_fun,
+                NodesModes.get_publisher_name(
+                    Nodes.LANE_DETECTION
+                ): self.lane_detection_mode_publisher_fun,
+                NodesModes.get_publisher_name(
+                    Nodes.PATH_PLANNING
+                ): self.path_planning_mode_publisher_fun,
+                NodesModes.get_publisher_name(
+                    Nodes.CONTROL
+                ): self.control_mode_publisher_fun,
+                NodesModes.get_publisher_name(
+                    Nodes.STATE_ESTIMATION
+                ): self.state_estimation_mode_publisher_fun,
+            },
+        )
         state_classes = [
-            states.StartBoxStateMachine,
-            states.DrivingState,
-            states.IntersectionState,
-            states.ParkingState,
-            states.OvertakingStateMachine,
-            states.CrosswalkState,
-            states.ExpressWayState,
-            states.NoPassingZoneState,
-            states.BarredAreaState,
+            StartBoxStateMachine,
+            DrivingState,
+            IntersectionState,
+            ParkingState,
+            OvertakingStateMachine,
+            CrosswalkState,
+            ExpressWayState,
+            NoPassingZoneState,
+            BarredAreaState,
         ]
         [self._add_state(state_class) for state_class in state_classes]
 
@@ -144,6 +195,10 @@ class StateMachine(rclpy.node.Node):
         state: yasmin.State = state_class(self.debug)
         self.sm.add_state(name=state.NAME, state=state, transitions=state.TRANSITIONS)
 
+    ##############################
+    # Callbacks for the subscribers
+    ##############################
+
     def object_callback(self, msg):
         """Callback function for the object detection object subscriber."""
         # Add the object to the blackboard
@@ -152,7 +207,7 @@ class StateMachine(rclpy.node.Node):
             obj_id = 0  # TODO: Extract from Topic
             obj_position = 0  # TODO: Extract from Topic
             obj_dist = 0  # TODO: Extract from Topic
-            obj_name = self.id_object_mapping.get(obj_id, "unknown")
+            obj_name = ID2OBJECT.get(obj_id, "unknown")
             objects.append(
                 {
                     "id": obj_id,
@@ -174,7 +229,7 @@ class StateMachine(rclpy.node.Node):
             sign_id = 0  # TODO: Extract from topic
             sign_position = 0  # TODO: Extract from topic
             sign_dist = 0  # TODO: Extract from topic
-            sign_name = self.id_sign_mapping.get(sign_id, "unknown")
+            sign_name = ID2SIGN.get(sign_id, "unknown")
             signs.append(
                 {
                     "id": sign_id,
@@ -187,6 +242,62 @@ class StateMachine(rclpy.node.Node):
         self.blackboard.set("sign_list", signs)
         if self.debug:
             self.get_logger().info(f"Sign List: {signs}")
+
+    ##############################
+    # Callbacks for the publishers
+    ##############################
+
+    def lights_publisher_fun(self, light_configuration: Light):
+        """Publish the light configuration."""
+        msg = std_msgs.msg.UInt8()
+        msg.data = light_configuration.value
+        self.lights_publisher.publish(msg)
+        if self.debug:
+            self.get_logger().info(f"Light Configuration: {light_configuration}")
+
+    def speed_limit_publisher_fun(self, max_speed: float):
+        """Publish the maximum speed."""
+        msg = std_msgs.msg.Int16()
+        msg.data = max_speed
+        self.speed_limit_publisher.publish(msg)
+        if self.debug:
+            self.get_logger().info(f"Max Speed: {max_speed}")
+
+    def lane_publisher_fun(self, goal_lane: Location):
+        """Publish the goal lane."""
+        # TODO
+        if self.debug:
+            self.get_logger().info(f"Goal Lane: {goal_lane}")
+
+    def object_detection_mode_publisher_fun(self, mode: NodesModes):
+        """Publish the object detection mode."""
+        # TODO
+        if self.debug:
+            self.get_logger().info(f"Object Detection Mode: {mode}")
+
+    def lane_detection_mode_publisher_fun(self, mode: NodesModes):
+        """Publish the lane detection mode."""
+        # TODO
+        if self.debug:
+            self.get_logger().info(f"Lane Detection Mode: {mode}")
+
+    def path_planning_mode_publisher_fun(self, mode: NodesModes):
+        """Publish the path planning mode."""
+        # TODO
+        if self.debug:
+            self.get_logger().info(f"Path Planning Mode: {mode}")
+
+    def control_mode_publisher_fun(self, mode: NodesModes):
+        """Publish the control mode."""
+        # TODO
+        if self.debug:
+            self.get_logger().info(f"Control Mode: {mode}")
+
+    def state_estimation_mode_publisher_fun(self, mode: NodesModes):
+        """Publish the state estimation mode."""
+        # TODO
+        if self.debug:
+            self.get_logger().info(f"State Estimation Mode: {mode}")
 
 
 def main(args=None, debug: bool = False):

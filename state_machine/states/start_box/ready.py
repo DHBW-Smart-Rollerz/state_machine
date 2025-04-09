@@ -3,6 +3,13 @@ import time
 import yasmin
 
 from state_machine.components.base_state import BaseState
+from state_machine.components.state_description import (
+    Light,
+    Nodes,
+    NodesModes,
+    StateDescription,
+)
+from state_machine.states import CONSTANTS
 from state_machine.utils import Location, detectors
 
 
@@ -10,6 +17,18 @@ class ReadyState(BaseState):
     """Ready to start state."""
 
     NAME = "ready"
+    STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.NORMAL,
+        max_speed=0.0,
+        goal_lane=Location.RIGHT,
+        node_modes={
+            Nodes.OBJECT_DETECTION: NodesModes.ACTIVE,
+            Nodes.LANE_DETECTION: NodesModes.ACTIVE,
+            Nodes.PATH_PLANNING: NodesModes.ACTIVE,
+            Nodes.CONTROL: NodesModes.ACTIVE,
+            Nodes.STATE_ESTIMATION: NodesModes.ACTIVE,
+        },
+    )
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
@@ -45,8 +64,6 @@ class ReadyState(BaseState):
         """
         # Stop sign in sign list
         signs: list[dict] = blackboard.get("sign_list")
-
-        from state_machine.states import CONSTANTS
 
         sign_dist_thresh = CONSTANTS.START_BOX.DISTANCE_THRESH
         timeout = CONSTANTS.START_BOX.READY_TIMEOUT

@@ -3,7 +3,14 @@ import time
 import yasmin
 
 from state_machine.components.base_state import BaseState
-from state_machine.states import start_box
+from state_machine.components.state_description import (
+    Light,
+    Nodes,
+    NodesModes,
+    StateDescription,
+)
+from state_machine.states import CONSTANTS
+from state_machine.states.start_box.ready import ReadyState
 from state_machine.utils import Location, detectors
 
 
@@ -11,13 +18,25 @@ class SearchState(BaseState):
     """Search state class."""
 
     NAME = "search_start_box"
+    STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.BRAKE,
+        max_speed=0.0,
+        goal_lane=Location.RIGHT,
+        node_modes={
+            Nodes.OBJECT_DETECTION: NodesModes.ACTIVE,
+            Nodes.LANE_DETECTION: NodesModes.INACTIVE,
+            Nodes.PATH_PLANNING: NodesModes.INACTIVE,
+            Nodes.CONTROL: NodesModes.INACTIVE,
+            Nodes.STATE_ESTIMATION: NodesModes.INACTIVE,
+        },
+    )
 
     def __init__(self, debug: bool = False):
         """Initializes the SearchState."""
         self.TRANSITIONS = {
             "loop": self.NAME,
             "canceled": "canceled",
-            "start_sign_detected": start_box.ReadyState.NAME,
+            "start_sign_detected": ReadyState.NAME,
         }
         self._first_found_time = -1
         self._counter = 0
@@ -56,8 +75,6 @@ class SearchState(BaseState):
         Returns:
             bool -- True if the timeout has been reached, False otherwise
         """
-        from state_machine.states import CONSTANTS
-
         timeout = CONSTANTS.START_BOX.SEARCH_TIMEOUT
         current_time = time.perf_counter()
         return current_time - self._init_time > timeout
@@ -74,8 +91,6 @@ class SearchState(BaseState):
         """
         # Stop sign in sign list
         signs: list[dict] = blackboard["sign_list"]
-
-        from state_machine.states import CONSTANTS
 
         sign_dist_thresh = CONSTANTS.START_BOX.DISTANCE_THRESH
         ready_time_thresh = CONSTANTS.START_BOX.READY_TIME_THRESH

@@ -49,7 +49,7 @@ class StateWrappedStateMachine(BaseState):
         Returns:
             str -- Next state (loop) per default
         """
-        super().execute(blackboard)
+        super().execute(blackboard, publish_and_set_description=False)
         if self._first_call:
             self.reset()
             if timeout_time > 0:

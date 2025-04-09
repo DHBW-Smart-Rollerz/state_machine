@@ -1,8 +1,3 @@
-from state_machine.states.drive.driving import DrivingState
-
-__all__ = ["DrivingState"]
-
-
 class DRIVE_CONSTANTS:
     """CONSTANTS for the drive state machine."""
 
@@ -26,3 +21,6 @@ class DRIVE_CONSTANTS:
 
     # No Passing Zone Threshold
     NO_PASSING_ZONE_THRESHOLD = 50  # mm
+
+    # Maximum Speed
+    MAX_SPEED = 1.2  # m/s

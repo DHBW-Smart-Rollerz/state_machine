@@ -1,18 +1,3 @@
-from state_machine.states.overtake.overtaking import OvertakingStateMachine
-from state_machine.states.overtake.ready import ReadyState
-from state_machine.states.overtake.stay import StayState
-from state_machine.states.overtake.switch_lane import SwitchLaneState
-from state_machine.states.overtake.switch_lane_back import SwitchLaneBackState
-
-__all__ = [
-    "OvertakingStateMachine",
-    "ReadyState",
-    "SwitchLaneState",
-    "StayState",
-    "SwitchLaneBackState",
-]
-
-
 class OVERTAKE_CONSTANTS:
     """CONSTANTS for the overtake state machine."""
 
@@ -24,3 +9,6 @@ class OVERTAKE_CONSTANTS:
 
     # The time in seconds to stay in the lane after overtaking
     STAY_TIME = 5  # s
+
+    # The maximum speed in m/s
+    MAX_SPEED = 0.8  # m/s

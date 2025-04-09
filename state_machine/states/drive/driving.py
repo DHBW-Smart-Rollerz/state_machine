@@ -1,6 +1,13 @@
 import yasmin
 
 from state_machine.components.base_state import BaseState
+from state_machine.components.state_description import (
+    Light,
+    Nodes,
+    NodesModes,
+    StateDescription,
+)
+from state_machine.states import CONSTANTS
 from state_machine.utils import Location
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
@@ -9,10 +16,22 @@ class DrivingState(BaseState):
     """Driving state."""
 
     NAME = "driving"
+    STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.NORMAL,
+        max_speed=CONSTANTS.DRIVE.MAX_SPEED,
+        goal_lane=Location.RIGHT,
+        node_modes={
+            Nodes.OBJECT_DETECTION: NodesModes.ACTIVE,
+            Nodes.LANE_DETECTION: NodesModes.ACTIVE,
+            Nodes.PATH_PLANNING: NodesModes.ACTIVE,
+            Nodes.CONTROL: NodesModes.ACTIVE,
+            Nodes.STATE_ESTIMATION: NodesModes.ACTIVE,
+        },
+    )
 
     def __init__(self, debug: bool = False):
         """Initialize the DrivingState."""
-        # REQUIRED (Circular import)
+        # Required (Circular Import)
         from state_machine.states.barred_area import BarredAreaState
         from state_machine.states.crosswalk import CrosswalkState
         from state_machine.states.express_way import ExpressWayState
@@ -74,8 +93,6 @@ class DrivingState(BaseState):
             return "loop"
 
     def _is_approaching_obstacle(self) -> bool:
-        from state_machine.states import CONSTANTS
-
         return check_dist_to_obj_sign(
             self.object_list,
             ["vehicle"],
@@ -86,8 +103,6 @@ class DrivingState(BaseState):
     def _is_approaching_intersection(
         self,
     ) -> bool:
-        from state_machine.states import CONSTANTS
-
         return check_dist_to_obj_sign(
             self.sign_list,
             ["stop", "give_way", "priority_oncoming_traffic"],
@@ -96,8 +111,6 @@ class DrivingState(BaseState):
         )
 
     def _is_approaching_parking_area(self) -> bool:
-        from state_machine.states import CONSTANTS
-
         return check_dist_to_obj_sign(
             self.sign_list,
             ["parking"],
@@ -110,8 +123,6 @@ class DrivingState(BaseState):
         pass
 
     def _is_approaching_crosswalk(self) -> bool:
-        from state_machine.states import CONSTANTS
-
         return check_dist_to_obj_sign(
             self.sign_list,
             ["crosswalk"],
@@ -120,8 +131,6 @@ class DrivingState(BaseState):
         )
 
     def _is_approaching_express_way(self) -> bool:
-        from state_machine.states import CONSTANTS
-
         return check_dist_to_obj_sign(
             self.sign_list,
             ["fast_track", "fast_track_lifted"],
@@ -130,8 +139,6 @@ class DrivingState(BaseState):
         )
 
     def _is_approaching_no_passing_zone(self) -> bool:
-        from state_machine.states import CONSTANTS
-
         return check_dist_to_obj_sign(
             self.sign_list,
             ["no_overtaking", "no_overtaking_lifted"],

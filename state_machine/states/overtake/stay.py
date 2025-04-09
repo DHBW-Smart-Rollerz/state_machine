@@ -1,7 +1,10 @@
 import time
 
 from state_machine.components.base_state import BaseState
-from state_machine.utils.detectors import check_dist_to_obj_sign, opposite_of_location
+from state_machine.states import CONSTANTS
+from state_machine.states.overtake.switch_lane_back import SwitchLaneBackState
+from state_machine.utils import Location
+from state_machine.utils.detectors import check_dist_to_obj_sign
 
 
 class StayState(BaseState):
@@ -11,11 +14,9 @@ class StayState(BaseState):
 
     def __init__(self, debug: bool = False):
         """Initialize the StayState."""
-        from state_machine.states import overtake
-
         self.TRANSITIONS = {
             "loop": self.NAME,
-            "overtake_done": overtake.SwitchLaneBackState.NAME,
+            "overtake_done": SwitchLaneBackState.NAME,
         }
         super().__init__(debug)
 
@@ -39,13 +40,11 @@ class StayState(BaseState):
 
     def check_overtake_done(self):
         """Check if the overtaking is done."""
-        from state_machine.states import CONSTANTS
-
         self._object_in_range = check_dist_to_obj_sign(
             self.object_list,
             ["vehicle"],
             CONSTANTS.OVERTAKE.START_DIST,
-            location=opposite_of_location(self.car_location),
+            location=Location.opposite(self.car_location),
         )
         if not self._object_in_range:
             self._start_delay()
