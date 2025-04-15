@@ -1,12 +1,7 @@
-import yasmin
+from smarty_utils.enums import Light, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
-from state_machine.components.state_description import (
-    Light,
-    Nodes,
-    NodesModes,
-    StateDescription,
-)
+from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.utils import Location
 from state_machine.utils.detectors import check_dist_to_obj_sign
@@ -20,12 +15,12 @@ class DrivingState(BaseState):
         light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.DRIVE.MAX_SPEED,
         goal_lane=Location.RIGHT,
-        node_modes={
-            Nodes.OBJECT_DETECTION: NodesModes.ACTIVE,
-            Nodes.LANE_DETECTION: NodesModes.ACTIVE,
-            Nodes.PATH_PLANNING: NodesModes.ACTIVE,
-            Nodes.CONTROL: NodesModes.ACTIVE,
-            Nodes.STATE_ESTIMATION: NodesModes.ACTIVE,
+        node_states={
+            Nodes.OBJECT_DETECTION: NodeState.ACTIVE,
+            Nodes.LANE_DETECTION: NodeState.ACTIVE,
+            Nodes.PATH_PLANNING: NodeState.ACTIVE,
+            Nodes.CONTROL: NodeState.ACTIVE,
+            Nodes.STATE_ESTIMATION: NodeState.ACTIVE,
         },
     )
 
@@ -63,7 +58,7 @@ class DrivingState(BaseState):
         """
         return []
 
-    def execute(self, blackboard: yasmin.Blackboard) -> str:
+    def execute(self, blackboard: BlackBoard) -> str:
         """
         Execute the DrivingState.
 
@@ -94,17 +89,17 @@ class DrivingState(BaseState):
 
     def _is_approaching_obstacle(self) -> bool:
         return check_dist_to_obj_sign(
-            self.object_list,
+            self.blackboard.objects,
             ["vehicle"],
             CONSTANTS.DRIVE.OVERTAKING_THRESHOLD,
-            location=self.car_location,
+            location=self.blackboard.car_lane,
         )
 
     def _is_approaching_intersection(
         self,
     ) -> bool:
         return check_dist_to_obj_sign(
-            self.sign_list,
+            self.blackboard.signs,
             ["stop", "give_way", "priority_oncoming_traffic"],
             CONSTANTS.DRIVE.INTERSECTION_THRESHOLD,
             location=Location.NOT_RELEVANT,
@@ -112,7 +107,7 @@ class DrivingState(BaseState):
 
     def _is_approaching_parking_area(self) -> bool:
         return check_dist_to_obj_sign(
-            self.sign_list,
+            self.blackboard.signs,
             ["parking"],
             CONSTANTS.DRIVE.PARKING_THRESHOLD,
             location=Location.NOT_RELEVANT,
@@ -124,7 +119,7 @@ class DrivingState(BaseState):
 
     def _is_approaching_crosswalk(self) -> bool:
         return check_dist_to_obj_sign(
-            self.sign_list,
+            self.blackboard.signs,
             ["crosswalk"],
             CONSTANTS.DRIVE.CROSSWALK_THRESHOLD,
             location=Location.NOT_RELEVANT,
@@ -132,7 +127,7 @@ class DrivingState(BaseState):
 
     def _is_approaching_express_way(self) -> bool:
         return check_dist_to_obj_sign(
-            self.sign_list,
+            self.blackboard.signs,
             ["fast_track", "fast_track_lifted"],
             CONSTANTS.DRIVE.EXPRESS_WAY_THRESHOLD,
             location=Location.NOT_RELEVANT,
@@ -140,7 +135,7 @@ class DrivingState(BaseState):
 
     def _is_approaching_no_passing_zone(self) -> bool:
         return check_dist_to_obj_sign(
-            self.sign_list,
+            self.blackboard.signs,
             ["no_overtaking", "no_overtaking_lifted"],
             CONSTANTS.DRIVE.NO_PASSING_ZONE_THRESHOLD,
             location=Location.NOT_RELEVANT,

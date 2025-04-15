@@ -1,5 +1,5 @@
 from state_machine.components.base_state import BaseState
-from state_machine.components.state_description import StateDescription
+from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.states.overtake.switch_lane import SwitchLaneState
 from state_machine.utils.detectors import check_dist_to_obj_sign
@@ -21,7 +21,7 @@ class ReadyState(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard):
+    def execute(self, blackboard: BlackBoard):
         """
         Execute the state.
 
@@ -34,10 +34,10 @@ class ReadyState(BaseState):
         super().execute(blackboard)
 
         if check_dist_to_obj_sign(
-            self.object_list,
+            self.blackboard.objects,
             ["vehicle"],
             CONSTANTS.OVERTAKE.START_DIST,
-            location=self.car_location,
+            location=self.blackboard.car_lane,
         ):
             return "start_overtake"
 

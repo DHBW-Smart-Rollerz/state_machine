@@ -1,6 +1,5 @@
-import yasmin
-
 from state_machine.components.base_state import BaseState
+from state_machine.components.state_description import BlackBoard
 
 
 class ParkingState(BaseState):
@@ -16,7 +15,7 @@ class ParkingState(BaseState):
         self.TRANSITIONS = {"dummy": DrivingState.NAME}  # TODO: Add transitions
         super().__init__()
 
-    def execute(self, blackboard: yasmin.Blackboard) -> str:
+    def execute(self, blackboard: BlackBoard) -> str:
         """
         Executes the ParkingState.
 

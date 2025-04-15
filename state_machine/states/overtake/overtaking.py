@@ -1,5 +1,6 @@
 import copy
 
+from state_machine.components.state_description import BlackBoard
 from state_machine.components.state_wrapped_sm import StateWrappedStateMachine
 from state_machine.states import CONSTANTS
 from state_machine.states.drive.driving import DrivingState
@@ -32,8 +33,8 @@ class OvertakingStateMachine(StateWrappedStateMachine):
 
         super().__init__(state_classes, debug)
 
-    def execute(self, blackboard):
+    def execute(self, blackboard: BlackBoard):
         """Execute the state machine."""
         if self._first_call:
-            blackboard["start_location"] = copy.copy(blackboard["car_location"])
+            blackboard["start_location"] = copy.copy(blackboard.car_lane)
         return super().execute(blackboard, timeout_time=CONSTANTS.OVERTAKE.TIMEOUT)

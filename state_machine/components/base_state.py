@@ -1,13 +1,9 @@
 import time
 
 import yasmin
+from smarty_utils.enums import Light, Nodes, NodeState
 
-from state_machine.components.state_description import (
-    Light,
-    Nodes,
-    NodesModes,
-    StateDescription,
-)
+from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.utils import Location
 
 
@@ -20,12 +16,12 @@ class BaseState(yasmin.State):
         light_configuration=Light.BRAKE,
         max_speed=0.0,
         goal_lane=Location.RIGHT,
-        node_modes={
-            Nodes.OBJECT_DETECTION: NodesModes.INACTIVE,
-            Nodes.LANE_DETECTION: NodesModes.INACTIVE,
-            Nodes.PATH_PLANNING: NodesModes.INACTIVE,
-            Nodes.CONTROL: NodesModes.INACTIVE,
-            Nodes.STATE_ESTIMATION: NodesModes.INACTIVE,
+        node_states={
+            Nodes.OBJECT_DETECTION: NodeState.INACTIVE,
+            Nodes.LANE_DETECTION: NodeState.INACTIVE,
+            Nodes.PATH_PLANNING: NodeState.INACTIVE,
+            Nodes.CONTROL: NodeState.INACTIVE,
+            Nodes.STATE_ESTIMATION: NodeState.INACTIVE,
         },
     )
 
@@ -34,7 +30,7 @@ class BaseState(yasmin.State):
         super().__init__(outcomes=list(self.TRANSITIONS.keys()))
         self._init_time = time.perf_counter()
         yasmin.YASMIN_LOG_INFO(f"Entering {self.NAME} state")
-        self.blackboard: yasmin.Blackboard = None
+        self.blackboard: BlackBoard = None
         self.debug: bool = debug
         self.car_location: Location = Location.UNKNOWN
         self.last_state: object = None
@@ -44,8 +40,8 @@ class BaseState(yasmin.State):
 
     def execute(
         self,
-        blackboard: yasmin.Blackboard,
-        publish_and_set_description: bool = True,
+        blackboard: BlackBoard,
+        update_black_board: bool = True,
     ) -> str:
         """
         Execute the state.
@@ -53,24 +49,7 @@ class BaseState(yasmin.State):
         Arguments:
             blackboard -- Blackboard object
         """
-        if publish_and_set_description:
-            blackboard["state_description"].publish_and_set_difference(
-                self.STATE_DESCRIPTION
-            )
-        self.parse_blackboard(blackboard)
+        if update_black_board:
+            blackboard.last_state = self.NAME
+            blackboard.update(self.STATE_DESCRIPTION)
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
-
-    def parse_blackboard(self, blackboard: yasmin.Blackboard):
-        """
-        Parse the blackboard.
-
-        Arguments:
-            blackboard -- Blackboard object
-        """
-        self.blackboard = blackboard
-        self.debug: bool = blackboard["debug"]
-        self.car_location: Location = blackboard["car_location"]
-        self.last_state: object = blackboard["last_state"]
-        self.last_state_time_stamp: int = blackboard["last_state_time_stamp"]
-        self.object_list: list[dict] = blackboard["object_list"]
-        self.sign_list: list[dict] = blackboard["sign_list"]

@@ -1,146 +1,250 @@
-import enum
+import time
 
 import yasmin
+from smarty_utils.enums import OBJECTS, SIGNS, Light, Nodes, NodeState
 
+from state_machine.components.state_parameter import (
+    ParameterStateParameter,
+    StateParameter,
+    TopicStateParameter,
+)
 from state_machine.utils import Location
 
 
-class Light(enum.Enum):
-    """Enum for light states."""
-
-    BLINK_LEFT = 4
-    BLINK_RIGHT = 3
-    NORMAL = 1
-    BRAKE = 2
-    OFF = 0
-
-
-class OBJECTS(enum.Enum):
-    """Enum for object types."""
-
-    VEHICLE = "vehicle"
-    PEDESTRIAN = "pedestrian"
-
-
-class SIGNS(enum.Enum):
-    """Enum for sign types."""
-
-    STOP = "stop"
-    YIELD = "yield"
-    NO_OVERTAKING = "no_overtaking"
-    NO_OVERTAKING_LIFTED = "no_overtaking_lifted"
-    FAST_TRACK = "fast_track"
-    FAST_TRACK_LIFTED = "fast_track_lifted"
-    SPEED_LIMIT_30 = "speed_limit_30"
-    SPEED_LIMIT_30_LIFTED = "speed_limit_30_lifted"
-    CROSSWALK = "crosswalk"
-    PRIORITY_ONCOMING_TRAFFIC = "priority_oncoming_traffic"
-    PARKING = "parking"
-    TURN_LEFT = "turn_left"
-    TURN_RIGHT = "turn_right"
-    GIVE_WAY = "give_way"
-    PRIORITY = "priority"
-
-
-class Nodes(enum.Enum):
-    """Computation Nodes."""
-
-    LANE_DETECTION = "lane_detection_ai"
-    OBJECT_DETECTION = "object_detection"
-    PATH_PLANNING = "pathplanning"
-    CONTROL = "control"
-    STATE_ESTIMATION = "state_estimation"
-
-
-class NodesModes(enum.Enum):
-    """Enum for node states."""
-
-    INACTIVE = 0
-    ACTIVE = 1
-    RESET = 2
-
-    @staticmethod
-    def get_publisher_name(node: Nodes) -> str:
-        """Get the publisher name for the node mode."""
-        return f"{node.value}_mode_publisher"
-
-    @staticmethod
-    def get_all_publishers() -> list[str]:
-        """Get all publisher names for node modes."""
-        return [NodesModes.get_publisher_name(node) for node in Nodes]
-
-
 class StateDescription:
-    """Describes the state including maximal speed, lane, and other parameters."""
+    """Describes properties of a state."""
 
     def __init__(
         self,
         light_configuration: Light = None,
         max_speed: float = None,
         goal_lane: Location = None,
-        node_modes: dict[Nodes, NodesModes] = {},
-        publishers: dict[str, callable] = {},
+        node_states: dict[Nodes, NodeState] = None,
     ):
         """
         Initialize the state description.
 
         Keyword Arguments:
-            light_configuration -- Light Config (default: {None})
-            max_speed -- Maximal Speed to set (default: {None})
-            goal_lane -- Lane to switch to (default: {None})
-            node_modes -- Modes of each node (default: {{}})
-            publishers -- Publisher functions for the node modes (default: {{}})
+            light_configuration -- Light configuration
+            max_speed -- Maximum speed
+            goal_lane -- Goal lane
+            node_states -- Node states
         """
         self.light_configuration = light_configuration
         self.max_speed = max_speed
         self.goal_lane = goal_lane
-        self.node_modes: dict[Nodes, NodesModes] = node_modes
-        self.publishers = publishers
+        self.node_states = node_states
+
+
+class BlackBoard(yasmin.Blackboard):
+    """Describes the state including maximal speed, lane, and other parameters."""
+
+    def __init__(
+        self,
+        light_configuration: TopicStateParameter,
+        max_speed: TopicStateParameter,
+        goal_lane: TopicStateParameter,
+        car_lane: TopicStateParameter,
+        objects: StateParameter,
+        signs: StateParameter,
+        lane_coefficients: StateParameter,
+        last_state: TopicStateParameter,
+        last_timestamp: StateParameter,
+        node_states: dict[Nodes, ParameterStateParameter],
+        remote_state: StateParameter,
+    ):
+        """
+        Initialize the state description.
+
+        Keyword Arguments:
+            light_configuration -- Light configuration
+            max_speed -- Maximum speed
+            goal_lane -- Goal lane
+            car_lane -- Car lane
+            objects -- Objects detected
+            signs -- Signs detected
+            lane_coefficients -- Lane coefficients
+            last_state -- Last state
+            last_timestamp -- Last timestamp
+            node_states -- Node states
+            remote_state -- Remote state
+        """
+        super().__init__()
+        self._light_configuration = light_configuration
+        self._max_speed = max_speed
+        self._goal_lane = goal_lane
+        self._car_lane = car_lane
+        self._objects = objects
+        self._signs = signs
+        self._lane_coefficients = lane_coefficients
+        self._last_state = last_state
+        self._last_timestamp = last_timestamp
+        self._node_states = node_states
+        self._remote_state = remote_state
+
+    def update(self, state_description: StateDescription):
+        """
+        Update the state description.
+
+        Arguments:
+            state_description -- State description
+        """
+        with self.__lock:
+            if state_description.light_configuration:
+                self.light_configuration = state_description.light_configuration
+            if state_description.max_speed:
+                self.max_speed = state_description.max_speed
+            if state_description.goal_lane:
+                self.goal_lane = state_description.goal_lane
+            if state_description.node_states:
+                for key, state in state_description.node_states.items():
+                    assert (
+                        key in self._node_states.keys()
+                    ), f"Key {key} not in node states"
+                    self._node_states[key].value = state
 
     @property
-    def publishers(self):
-        """Get the publishers."""
-        return self._publishers
+    def light_configuration(self) -> Light:
+        """Get the light configuration."""
+        with self.__lock:
+            return self._light_configuration.value
 
-    @publishers.setter
-    def publishers(self, publishers: dict[str, callable]):
-        """Set the publishers."""
-        self._publishers = self._check_publishers(publishers)
+    @light_configuration.setter
+    def light_configuration(self, light: Light):
+        """Set the light configuration."""
+        with self.__lock:
+            self._light_configuration.value = light
 
-    def _check_publishers(self, publishers: dict[str, callable]) -> dict[str, callable]:
-        """Check if the publishers are callable and match the required attributes."""
-        for key, value in publishers.items():
-            if not callable(value):
-                raise ValueError(f"Publisher for '{key}' is not callable.")
-        return publishers
+    @property
+    def max_speed(self) -> float:
+        """Get the maximum speed."""
+        with self.__lock:
+            return self._max_speed.value
 
-    def publish_and_set_difference(self, other: "StateDescription"):
-        """Publish the difference between two state descriptions."""
-        diff = self.difference(other)
-        for key, value in diff.items():
-            if key in self._publishers:
-                if self.publishers[key](value):
-                    self.__setattr__(key, value)
-                else:
-                    yasmin.YASMIN_LOG_WARN(
-                        f"Failed to publish '{key}' with value '{value}'."
-                    )
-            else:
-                yasmin.YASMIN_LOG_WARN(f"Publisher for '{key}' not found.")
+    @max_speed.setter
+    def max_speed(self, speed: float):
+        """Set the maximum speed."""
+        with self.__lock:
+            self._max_speed.value = speed
 
-    def difference(self, other: "StateDescription") -> dict:
-        """Calculate the difference between two state descriptions."""
-        diff = {}
-        if (
-            other.light_configuration
-            and self.light_configuration != other.light_configuration
-        ):
-            diff["light_configuration"] = other.light_configuration
-        if other.max_speed and self.max_speed != other.max_speed:
-            diff["max_speed"] = other.max_speed
-        if other.goal_lane and self.goal_lane != other.goal_lane:
-            diff["goal_lane"] = other.goal_lane
-        for node in other.node_modes.keys():
-            if self.node_modes.get(node, None) != other.node_modes[node]:
-                diff[node] = other.node_modes[node]
-        return diff
+    @property
+    def goal_lane(self) -> Location:
+        """Get the goal lane."""
+        with self.__lock:
+            return self._goal_lane.value
+
+    @goal_lane.setter
+    def goal_lane(self, lane: Location):
+        """Set the goal lane."""
+        with self.__lock:
+            self._goal_lane.value = lane
+
+    @property
+    def car_lane(self) -> Location:
+        """Get the car lane."""
+        with self.__lock:
+            return self._car_lane.value
+
+    @car_lane.setter
+    def car_lane(self, lane: Location):
+        """Set the car lane."""
+        with self.__lock:
+            self._car_lane.value = lane
+
+    @property
+    def objects(self) -> list[OBJECTS]:
+        """Get the detected objects."""
+        with self.__lock:
+            return self._objects.value
+
+    @objects.setter
+    def objects(self, detected_objects: list[dict]):
+        """Set the detected objects."""
+        with self.__lock:
+            self._objects.value = detected_objects
+
+    @property
+    def signs(self) -> list[SIGNS]:
+        """Get the detected signs."""
+        with self.__lock:
+            return self._signs.value
+
+    @signs.setter
+    def signs(self, detected_signs: list[dict]):
+        """Set the detected signs."""
+        with self.__lock:
+            self._signs.value = detected_signs
+
+    @property
+    def lane_coefficients(self) -> dict[str, tuple]:
+        """Get the lane coefficients."""
+        with self.__lock:
+            return self._lane_coefficients.value
+
+    @lane_coefficients.setter
+    def lane_coefficients(self, coefficients: dict[str, tuple]):
+        """Set the lane coefficients."""
+        with self.__lock:
+            self._lane_coefficients.value = coefficients
+            self.check_car_lane()
+
+    @property
+    def last_state(self) -> str:
+        """Get the last state."""
+        with self.__lock:
+            return self._last_state.value
+
+    @last_state.setter
+    def last_state(self, state: str):
+        """Set the last state."""
+        with self.__lock:
+            if state == self._last_state.value:
+                return
+            self._last_state.value = state
+            self._last_timestamp.value = time.perf_counter()
+
+    @property
+    def last_timestamp(self) -> float:
+        """Get the last timestamp."""
+        with self.__lock:
+            return self._last_timestamp.value
+
+    @last_timestamp.setter
+    def last_timestamp(self, timestamp: float):
+        """Set the last timestamp."""
+        with self.__lock:
+            self._last_timestamp.value = timestamp
+
+    @property
+    def node_states(self) -> dict[str, NodeState]:
+        """Get the node states."""
+        with self.__lock:
+            return {key: param.value for key, param in self._node_states.items()}
+
+    @node_states.setter
+    def node_states(self, states: dict[str, NodeState]):
+        """Set the node states."""
+        with self.__lock:
+            for key, state in states.items():
+                self._node_states[key].value = state
+
+    @property
+    def remote_state(self) -> int:
+        """Get the remote state."""
+        with self.__lock:
+            return self._remote_state.value
+
+    @remote_state.setter
+    def remote_state(self, state: int):
+        """Set the remote state."""
+        with self.__lock:
+            self._remote_state.value = state
+
+    def check_car_lane(self) -> Location:
+        """
+        Checks if the car is in the left or right lane.
+
+        Returns:
+            Location -- The lane where the car is located
+        """
+        pass  # TODO

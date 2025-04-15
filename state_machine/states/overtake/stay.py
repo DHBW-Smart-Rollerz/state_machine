@@ -1,6 +1,7 @@
 import time
 
 from state_machine.components.base_state import BaseState
+from state_machine.components.state_description import BlackBoard
 from state_machine.states import CONSTANTS
 from state_machine.states.overtake.switch_lane_back import SwitchLaneBackState
 from state_machine.utils import Location
@@ -20,7 +21,7 @@ class StayState(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard):
+    def execute(self, blackboard: BlackBoard):
         """
         Execute the state.
 
@@ -41,10 +42,10 @@ class StayState(BaseState):
     def check_overtake_done(self):
         """Check if the overtaking is done."""
         self._object_in_range = check_dist_to_obj_sign(
-            self.object_list,
+            self.blackboard.objects,
             ["vehicle"],
             CONSTANTS.OVERTAKE.START_DIST,
-            location=Location.opposite(self.car_location),
+            location=Location.opposite(self.blackboard.car_lane),
         )
         if not self._object_in_range:
             self._start_delay()

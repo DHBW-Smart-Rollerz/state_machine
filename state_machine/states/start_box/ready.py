@@ -1,14 +1,11 @@
+import copy
 import time
 
 import yasmin
+from smarty_utils.enums import Light, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
-from state_machine.components.state_description import (
-    Light,
-    Nodes,
-    NodesModes,
-    StateDescription,
-)
+from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.utils import Location, detectors
 
@@ -21,12 +18,12 @@ class ReadyState(BaseState):
         light_configuration=Light.NORMAL,
         max_speed=0.0,
         goal_lane=Location.RIGHT,
-        node_modes={
-            Nodes.OBJECT_DETECTION: NodesModes.ACTIVE,
-            Nodes.LANE_DETECTION: NodesModes.ACTIVE,
-            Nodes.PATH_PLANNING: NodesModes.ACTIVE,
-            Nodes.CONTROL: NodesModes.ACTIVE,
-            Nodes.STATE_ESTIMATION: NodesModes.ACTIVE,
+        node_states={
+            Nodes.OBJECT_DETECTION: NodeState.ACTIVE,
+            Nodes.LANE_DETECTION: NodeState.ACTIVE,
+            Nodes.PATH_PLANNING: NodeState.ACTIVE,
+            Nodes.CONTROL: NodeState.ACTIVE,
+            Nodes.STATE_ESTIMATION: NodeState.ACTIVE,
         },
     )
 
@@ -35,7 +32,7 @@ class ReadyState(BaseState):
         self.TRANSITIONS = {"loop": self.NAME, "start_box_open": "done"}
         super().__init__()
 
-    def execute(self, blackboard: yasmin.Blackboard) -> str:
+    def execute(self, blackboard: BlackBoard) -> str:
         """
         Execute the ReadyState.
 
@@ -52,7 +49,7 @@ class ReadyState(BaseState):
         else:
             return "loop"
 
-    def _is_start_box_open(self, blackboard: yasmin.Blackboard) -> bool:
+    def _is_start_box_open(self, blackboard: BlackBoard) -> bool:
         """
         Check if the startbox is open.
 
@@ -64,7 +61,7 @@ class ReadyState(BaseState):
         """
         return True
         # Stop sign in sign list
-        signs: list[dict] = blackboard.get("sign_list")
+        signs: list[dict] = copy.copy(blackboard.signs)
 
         sign_dist_thresh = CONSTANTS.START_BOX.DISTANCE_THRESH
         timeout = CONSTANTS.START_BOX.READY_TIMEOUT

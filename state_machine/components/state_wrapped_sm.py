@@ -5,6 +5,7 @@ import yasmin
 import yasmin_viewer
 
 from state_machine.components.base_state import BaseState
+from state_machine.components.state_description import BlackBoard
 
 
 class StateWrappedStateMachine(BaseState):
@@ -38,7 +39,7 @@ class StateWrappedStateMachine(BaseState):
         self._timer = None
         self._outcome = None
 
-    def execute(self, blackboard: yasmin.Blackboard, timeout_time: float = -1.0) -> str:
+    def execute(self, blackboard: BlackBoard, timeout_time: float = -1.0) -> str:
         """
         Execute the state and start the state machine.
 
@@ -49,7 +50,7 @@ class StateWrappedStateMachine(BaseState):
         Returns:
             str -- Next state (loop) per default
         """
-        super().execute(blackboard, publish_and_set_description=False)
+        super().execute(blackboard, update_black_board=False)
         if self._first_call:
             self.reset()
             if timeout_time > 0:
