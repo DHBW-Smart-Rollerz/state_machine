@@ -61,6 +61,7 @@ class StateWrappedStateMachine(BaseState):
             return "loop"
 
         if self._run_sm:
+            time.sleep(0.0001)
             return "loop"
 
         self._first_call = True

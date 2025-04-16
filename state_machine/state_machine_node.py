@@ -1,3 +1,4 @@
+import threading
 import time
 
 import geometry_msgs.msg
@@ -57,33 +58,38 @@ class StateMachine(SmartyNode):
                 "remote_state_subscriber": (
                     std_msgs.msg.UInt8,
                     self.new_remote_state,
-                    1,
+                    None,
                 ),
                 "path_planning_left_subscriber": (
                     geometry_msgs.msg.Vector3,
                     self.new_left_lane,
-                    1,
+                    None,
                 ),
                 "path_planning_right_subscriber": (
                     geometry_msgs.msg.Vector3,
                     self.new_right_lane,
-                    1,
+                    None,
                 ),
-                "sign_topic": (std_msgs.msg.Float32MultiArray, self.sign_callback, 1),
+                "sign_topic": (
+                    std_msgs.msg.Float32MultiArray,
+                    self.sign_callback,
+                    None,
+                ),
                 "object_topic": (
                     std_msgs.msg.Float32MultiArray,
                     self.object_callback,
-                    1,
+                    None,
                 ),
             },
             published_topics={
-                "lights_topic": (std_msgs.msg.UInt8, 1),
-                "speed_limit_topic": (std_msgs.msg.Float32, 1),
-                "debug_state_topic": (std_msgs.msg.String, 1),
-                "car_lane_topic": (std_msgs.msg.String, 1),
-                "goal_lane_topic": (std_msgs.msg.String, 1),
+                "lights_topic": (std_msgs.msg.UInt8, None),
+                "speed_limit_topic": (std_msgs.msg.Float32, None),
+                "debug_state_topic": (std_msgs.msg.String, None),
+                "car_lane_topic": (std_msgs.msg.String, None),
+                "goal_lane_topic": (std_msgs.msg.String, None),
             },
         )
+        self._logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
         # Initialize the state machine
         self.node_state_clients = {
             node: AsyncParameterClient(self, node.value) for node in Nodes
@@ -92,8 +98,10 @@ class StateMachine(SmartyNode):
         self.init_state_machine()
 
         # Execute the state machine
-        outcome = self.sm(self.blackboard)
-        self.get_logger().info(f"State Machine finished with outcome: {outcome}")
+        self.state_machine_thread = threading.Thread(
+            target=lambda x: self.sm(x), args=(self.blackboard,)
+        )
+        self.state_machine_thread.start()
 
     def init_black_board(self):
         """Create the black board object."""
@@ -112,7 +120,7 @@ class StateMachine(SmartyNode):
         )
         objects = StateParameter("objects", [], list[dict])
         signs = StateParameter("signs", [], list[dict])
-        lane_coefficients = StateParameter("lane_coefficients", [], dict[str, tuple])
+        lane_coefficients = StateParameter("lane_coefficients", {}, dict[str, tuple])
         last_state = TopicStateParameter(
             "last_state", "initialized", str, self.debug_state_publisher_fun
         )
@@ -127,8 +135,8 @@ class StateMachine(SmartyNode):
         ]:
             node_states[node] = ParameterStateParameter(
                 f"{node.value}_state",
-                NodeState.INACTIVE,
-                NodeState,
+                NodeState.INACTIVE.value,
+                int,
                 [node],
                 self.node_param_setter,
             )
@@ -185,7 +193,12 @@ class StateMachine(SmartyNode):
     def parse_float32_multiarray(self, msg: std_msgs.msg.Float32MultiArray):
         """Parse the Float32MultiArray message."""
         assert isinstance(msg, std_msgs.msg.Float32MultiArray), "Invalid message type"
-        return [msg.data[i] for i in range(len(msg.data))]
+        result = [msg.data[i] for i in range(len(msg.data))]
+        if len(result) <= 0:
+            return []
+        if not isinstance(result[0], list):
+            result = [result]
+        return result
 
     def _calc_dist(self, obj_position: dict) -> float:
         """Calculate the distance from the car to the object."""
@@ -219,9 +232,9 @@ class StateMachine(SmartyNode):
                 "bottom_right_x": obj[3],
                 "bottom_right_y": obj[4],
             }
-            obj_location = Location.UNKNOWN  # TODO: Find locations
+            obj_location = self._get_location(obj_position)
             obj_dist = self._calc_dist(obj_position)
-            obj_name = OBJECTS(obj[5]) if is_object else SIGNS(obj[5])
+            obj_name = OBJECTS(obj_id) if is_object else SIGNS(obj_id)
             results.append(
                 {
                     "id": obj_id,
@@ -232,6 +245,48 @@ class StateMachine(SmartyNode):
                     "timestamp": self.get_clock().now().nanoseconds,
                 }
             )
+
+    def _get_location(self, obj_position: dict) -> tuple:
+        """Get the location of the object."""
+        assert isinstance(obj_position, dict), "Invalid object position type"
+        lx = obj_position["bottom_left_x"]
+        ly = obj_position["bottom_left_y"]
+        rx = obj_position["bottom_right_x"]
+        ry = obj_position["bottom_right_y"]
+        left_line_poly = self.blackboard.lane_coefficients.get("left", None)
+        right_line_poly = self.blackboard.lane_coefficients.get("right", None)
+        loc = Location.UNKNOWN
+        left_line_y = None
+        right_line_y = None
+
+        # Check which lane the object is in
+        if left_line_poly is not None and right_line_poly is not None:
+            left_line_y = left_line_poly(lx)
+            right_line_y = right_line_poly(rx)
+            if ly < left_line_y and ry < right_line_y:
+                loc = Location.LEFT
+            elif ly > left_line_y and ry > right_line_y:
+                loc = Location.RIGHT
+        elif left_line_poly is not None:
+            left_line_y = left_line_poly(lx)
+            if ly < left_line_y and ry < left_line_y:
+                loc = Location.LEFT
+            elif ly > left_line_y and ry > left_line_y:
+                loc = Location.RIGHT
+        elif right_line_poly is not None:
+            right_line_y = right_line_poly(rx)
+            if ly < right_line_y and ry < right_line_y:
+                loc = Location.RIGHT
+            elif ly > right_line_y and ry > right_line_y:
+                loc = Location.LEFT
+        else:
+            yasmin.YASMIN_LOG_WARN("No lane coefficients available.")
+
+        if self._debug:
+            self.get_logger().error(
+                f"Object Position: {obj_position}, Left Line Y: {left_line_y}, Right Line Y: {right_line_y}, Location: {loc}"
+            )
+        return loc
 
     def object_callback(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the object detection object subscriber."""
@@ -244,8 +299,8 @@ class StateMachine(SmartyNode):
 
     def sign_callback(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the object detection sign subscriber."""
-        parsed = self.parse_float32_multiarray(msg, False)
-        signs = self._create_obj_sign(parsed)
+        parsed = self.parse_float32_multiarray(msg)
+        signs = self._create_obj_sign(parsed, False)
         self.blackboard.signs = signs
         if self._debug:
             self.get_logger().info(f"Sign List: {signs}")
@@ -261,14 +316,16 @@ class StateMachine(SmartyNode):
         """Callback function for the left lane subscriber."""
         if self._debug:
             self.get_logger().info(f"Left Lane: {msg}")
-        self.blackboard.lane_coefficients["left"] = msg.data
+        line_coefs = [msg.x, msg.y, msg.z]
+        self.blackboard.lane_coefficients["left"] = np.poly1d(line_coefs)
         return True
 
     def new_right_lane(self, msg: geometry_msgs.msg.Vector3):
         """Callback function for the right lane subscriber."""
         if self._debug:
             self.get_logger().info(f"Right Lane: {msg}")
-        self.blackboard.lane_coefficients["right"] = msg.data
+        line_coefs = [msg.x, msg.y, msg.z]
+        self.blackboard.lane_coefficients["right"] = np.poly1d(line_coefs)
         return True
 
     ##############################
@@ -314,7 +371,7 @@ class StateMachine(SmartyNode):
     def debug_state_publisher_fun(self, state: str):
         """Publish the debug state."""
         msg = std_msgs.msg.String()
-        msg.data = state
+        msg.data = f"{state}"
         self.debug_state_topic.publish(msg)
         if self._debug:
             self.get_logger().info(f"Debug State: {state}")
@@ -375,6 +432,11 @@ class StateMachine(SmartyNode):
 
         return callback
 
+    def cancel_state(self):
+        """Cancel the state machine."""
+        self.sm.cancel_state()
+        self.state_machine_thread.join()
+
 
 def main(args=None, debug: bool = False):
     """
@@ -389,9 +451,9 @@ def main(args=None, debug: bool = False):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        if node.sm.is_running():
-            node.sm.cancel_state()
+        node.get_logger().info("Keyboard interrupt, shutting down...")
     finally:
+        node.cancel_state()
         node.destroy_node()
 
         # Shutdown if not already done by the ROS2 launch system

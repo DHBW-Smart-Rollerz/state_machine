@@ -1,3 +1,4 @@
+import threading
 import time
 
 import yasmin
@@ -70,6 +71,7 @@ class BlackBoard(yasmin.Blackboard):
             remote_state -- Remote state
         """
         super().__init__()
+        self.__lock = threading.Lock()
         self._light_configuration = light_configuration
         self._max_speed = max_speed
         self._goal_lane = goal_lane
@@ -89,19 +91,16 @@ class BlackBoard(yasmin.Blackboard):
         Arguments:
             state_description -- State description
         """
-        with self.__lock:
-            if state_description.light_configuration:
-                self.light_configuration = state_description.light_configuration
-            if state_description.max_speed:
-                self.max_speed = state_description.max_speed
-            if state_description.goal_lane:
-                self.goal_lane = state_description.goal_lane
-            if state_description.node_states:
-                for key, state in state_description.node_states.items():
-                    assert (
-                        key in self._node_states.keys()
-                    ), f"Key {key} not in node states"
-                    self._node_states[key].value = state
+        if state_description.light_configuration:
+            self.light_configuration = state_description.light_configuration
+        if state_description.max_speed:
+            self.max_speed = state_description.max_speed
+        if state_description.goal_lane:
+            self.goal_lane = state_description.goal_lane
+        if state_description.node_states:
+            for key, state in state_description.node_states.items():
+                assert key in self._node_states.keys(), f"Key {key} not in node states"
+                self._node_states[key].value = state.value
 
     @property
     def light_configuration(self) -> Light:
@@ -226,7 +225,7 @@ class BlackBoard(yasmin.Blackboard):
         """Set the node states."""
         with self.__lock:
             for key, state in states.items():
-                self._node_states[key].value = state
+                self._node_states[key].value = state.value
 
     @property
     def remote_state(self) -> int:

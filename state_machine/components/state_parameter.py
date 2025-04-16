@@ -25,6 +25,8 @@ class GenericStateParameter:
     @value.setter
     def value(self, value: any):
         """Set the value of the parameter."""
+        if value is None:
+            return
         if not isinstance(value, self.type_):
             raise TypeError(f"Value must be of type {self.type_}")
         if self.value != value:
@@ -182,5 +184,12 @@ class ParameterStateParameter(GenericStateParameter):
         assert self.nodes, "Nodes are not set"
         assert self.client_setter_fun, "Client setter function is not set"
         for node in self.nodes:
-            param = Parameter(self.name, self.type_, self.value)
+            type2ParemeterType = {
+                int: Parameter.Type.INTEGER,
+                float: Parameter.Type.DOUBLE,
+                str: Parameter.Type.STRING,
+                bool: Parameter.Type.BOOL,
+            }
+            assert self.type_ in type2ParemeterType, f"Type {self.type_} not supported"
+            param = Parameter(self.name, type2ParemeterType[self.type_], self.value)
             self.client_setter_fun(node, param)
