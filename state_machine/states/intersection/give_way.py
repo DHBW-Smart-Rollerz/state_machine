@@ -1,4 +1,6 @@
-from smarty_utils.enums import SIGNS
+import time
+
+from smarty_utils.enums import OBJECTS, SIGNS
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
@@ -22,6 +24,7 @@ class GiveWayState(BaseState):
             "done": "done",
             "wait_car": WaitState.NAME,
         }
+        self.start_time = time.perf_counter()
         super().__init__(debug)
 
     def execute(self, blackboard: BlackBoard):
@@ -36,6 +39,17 @@ class GiveWayState(BaseState):
         """
         super().execute(blackboard)
 
-        # TODO: Implement the logic to check if the stop sign is detected
+        if check_dist_to_obj_sign(
+            self.blackboard.objects,
+            [OBJECTS.VEHICLE],
+            CONSTANTS.INTERSECTION.VEHICLE_DIST,
+        ):
+            return "wait_car"
+
+        if (
+            time.perf_counter() - self.start_time
+            > CONSTANTS.INTERSECTION.NO_CAR_TIMEOUT
+        ):
+            return "done"
 
         return "loop"
