@@ -1,4 +1,6 @@
-from smarty_utils.enums import SIGNS
+import time
+
+from smarty_utils.enums import SIGNS, Light
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
@@ -13,13 +15,13 @@ class ReadyState(BaseState):
 
     NAME = "ready"
     STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.INTERSECTION.MAX_SPEED,
     )
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
         self.TRANSITIONS = {
-            "loop": self.NAME,
             "start_stop": StopState.NAME,
             "start_give_way": GiveWayState.NAME,
         }
@@ -37,18 +39,28 @@ class ReadyState(BaseState):
         """
         super().execute(blackboard)
 
-        if check_dist_to_obj_sign(
-            self.blackboard.signs,
-            [SIGNS.STOP],
-            CONSTANTS.INTERSECTION.START_DIST,
-        ):
-            return "start_overtake"
+        while True:
+            if check_dist_to_obj_sign(
+                self.blackboard.signs,
+                [SIGNS.STOP],
+                CONSTANTS.INTERSECTION.START_DIST,
+            ):
+                return "start_stop"
 
-        if check_dist_to_obj_sign(
-            self.blackboard.signs,
-            [SIGNS.GIVE_WAY, SIGNS.PRIORITY_ONCOMING_TRAFFIC],
-            CONSTANTS.INTERSECTION.START_DIST,
-        ):
-            return "start_give_way"
+            if check_dist_to_obj_sign(
+                self.blackboard.signs,
+                [SIGNS.GIVE_WAY, SIGNS.PRIORITY_ONCOMING_TRAFFIC],
+                CONSTANTS.INTERSECTION.START_DIST,
+            ):
+                return "start_give_way"
 
-        return "loop"
+            if (
+                time.perf_counter()
+                - self.blackboard.last_timestamp % CONSTANTS.INTERSECTION.LOG_TIME
+                == 0
+            ):
+                self.log(
+                    "Intersection - READY: Waiting for Sign to be detected in distance."
+                )
+
+            time.sleep(0.0001)

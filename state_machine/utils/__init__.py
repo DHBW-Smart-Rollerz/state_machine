@@ -6,6 +6,7 @@ class Location(enum.Enum):
 
     LEFT = "left"
     RIGHT = "right"
+    OUTSIDE = "outside"
     FRONT = "front"
     BACK = "back"
     UNKNOWN = "unknown"

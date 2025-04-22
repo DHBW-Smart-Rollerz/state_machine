@@ -1,6 +1,7 @@
 import time
 
-from smarty_utils.enums import OBJECTS, SIGNS
+import yasmin
+from smarty_utils.enums import OBJECTS, Light
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
@@ -14,6 +15,7 @@ class GiveWayState(BaseState):
 
     NAME = "give_way"
     STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.INTERSECTION.GIVE_WAY_MAX_SPEED,
     )
 
@@ -39,17 +41,21 @@ class GiveWayState(BaseState):
         """
         super().execute(blackboard)
 
-        if check_dist_to_obj_sign(
-            self.blackboard.objects,
-            [OBJECTS.VEHICLE],
-            CONSTANTS.INTERSECTION.VEHICLE_DIST,
-        ):
-            return "wait_car"
-
-        if (
+        while (
             time.perf_counter() - self.start_time
-            > CONSTANTS.INTERSECTION.NO_CAR_TIMEOUT
+            <= CONSTANTS.INTERSECTION.NO_CAR_TIMEOUT
         ):
-            return "done"
+            if check_dist_to_obj_sign(
+                self.blackboard.objects,
+                [OBJECTS.VEHICLE],
+                CONSTANTS.INTERSECTION.VEHICLE_DIST,
+            ):
+                return "wait_car"
 
-        return "loop"
+            if (
+                time.perf_counter() - self.start_time
+            ) % CONSTANTS.INTERSECTION.LOG_TIME == 0:
+                yasmin.YASMIN_LOG_INFO("Intersection - STOP: Searching for vehicle")
+            time.sleep(0.0001)
+
+        return "done"
