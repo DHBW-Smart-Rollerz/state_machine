@@ -1,5 +1,7 @@
 import time
 
+from smarty_utils.enums import OBJECTS
+
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard
 from state_machine.states import CONSTANTS
@@ -43,7 +45,7 @@ class StayState(BaseState):
         """Check if the overtaking is done."""
         self._object_in_range = check_dist_to_obj_sign(
             self.blackboard.objects,
-            ["vehicle"],
+            [OBJECTS.VEHICLE],
             CONSTANTS.OVERTAKE.START_DIST,
             location=Location.opposite(self.blackboard.car_lane),
         )

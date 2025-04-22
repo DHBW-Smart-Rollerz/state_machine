@@ -1,9 +1,10 @@
-from smarty_utils.enums import OBJECTS
+from smarty_utils.enums import SIGNS
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.states.overtake.switch_lane import SwitchLaneState
+from state_machine.states.intersection.give_way import GiveWayState
+from state_machine.states.intersection.stop import StopState
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
 
@@ -12,14 +13,15 @@ class ReadyState(BaseState):
 
     NAME = "ready"
     STATE_DESCRIPTION = StateDescription(
-        max_speed=CONSTANTS.OVERTAKE.MAX_SPEED,
+        max_speed=CONSTANTS.INTERSECTION.MAX_SPEED,
     )
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
         self.TRANSITIONS = {
             "loop": self.NAME,
-            "start_overtake": SwitchLaneState.NAME,
+            "start_stop": StopState.NAME,
+            "start_give_way": GiveWayState.NAME,
         }
         super().__init__(debug)
 
@@ -36,11 +38,17 @@ class ReadyState(BaseState):
         super().execute(blackboard)
 
         if check_dist_to_obj_sign(
-            self.blackboard.objects,
-            [OBJECTS.VEHICLE],
-            CONSTANTS.OVERTAKE.START_DIST,
-            location=self.blackboard.car_lane,
+            self.blackboard.signs,
+            [SIGNS.STOP],
+            CONSTANTS.INTERSECTION.START_DIST,
         ):
             return "start_overtake"
+
+        if check_dist_to_obj_sign(
+            self.blackboard.signs,
+            [SIGNS.GIVE_WAY, SIGNS.PRIORITY_ONCOMING_TRAFFIC],
+            CONSTANTS.INTERSECTION.START_DIST,
+        ):
+            return "start_give_way"
 
         return "loop"

@@ -2,7 +2,7 @@ import copy
 import time
 
 import yasmin
-from smarty_utils.enums import Light, Nodes, NodeState
+from smarty_utils.enums import SIGNS, Light, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
@@ -66,7 +66,7 @@ class ReadyState(BaseState):
         sign_dist_thresh = CONSTANTS.START_BOX.DISTANCE_THRESH
         timeout = CONSTANTS.START_BOX.READY_TIMEOUT
         detected = detectors.check_dist_to_obj_sign(
-            signs, "stop", sign_dist_thresh, Location.NOT_RELEVANT
+            signs, SIGNS.STOP, sign_dist_thresh, Location.NOT_RELEVANT
         )
         current_time = time.perf_counter()
 

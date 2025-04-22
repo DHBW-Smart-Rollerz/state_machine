@@ -1,9 +1,11 @@
+from smarty_utils.enums import OBJECTS, SIGNS
+
 from state_machine.utils import Location
 
 
 def check_dist_to_obj_sign(
     objects: list,
-    obj_types: str | list[str],
+    obj_types: OBJECTS | list[OBJECTS],
     dist_threshold: float,
     location: Location = Location.NOT_RELEVANT,
 ) -> bool:
@@ -18,7 +20,7 @@ def check_dist_to_obj_sign(
     Returns:
         bool -- True if the object is within the distance threshold, False otherwise
     """
-    if isinstance(obj_types, str):
+    if isinstance(obj_types, OBJECTS) or isinstance(obj_types, SIGNS):
         obj_types = [obj_types]
     # TODO: Check logic with API
     # Add location
