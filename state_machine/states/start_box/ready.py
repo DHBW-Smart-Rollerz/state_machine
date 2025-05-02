@@ -59,6 +59,7 @@ class ReadyState(BaseState):
         Returns:
             bool -- True if the startbox is open, False otherwise
         """
+        # return True
         # Stop sign in sign list
         signs: list[dict] = copy.copy(blackboard.signs)
 

@@ -86,6 +86,7 @@ class SearchState(BaseState):
         Returns:
             bool -- True if the start box is detected for the required duration, False otherwise
         """
+        # return True
         # Stop sign in sign list
         signs: list[dict] = copy.copy(blackboard.signs)
 
