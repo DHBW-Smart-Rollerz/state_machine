@@ -2,14 +2,13 @@ import threading
 import time
 
 import yasmin
-from smarty_utils.enums import OBJECTS, SIGNS, Light, Nodes, NodeState
+from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
 
 from state_machine.components.state_parameter import (
     ParameterStateParameter,
     StateParameter,
     TopicStateParameter,
 )
-from state_machine.utils import Location
 
 
 class StateDescription:

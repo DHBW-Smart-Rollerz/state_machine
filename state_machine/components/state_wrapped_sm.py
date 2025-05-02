@@ -58,11 +58,9 @@ class StateWrappedStateMachine(BaseState):
             self.blackboard = blackboard
             self._first_call = False
             self._start_sm()
-            return "loop"
 
-        if self._run_sm:
+        while self._run_sm:
             time.sleep(0.0001)
-            return "loop"
 
         self._first_call = True
         return self._outcome

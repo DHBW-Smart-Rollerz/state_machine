@@ -1,11 +1,10 @@
 import time
 
 import yasmin
-from smarty_utils.enums import Light, Nodes, NodeState
+from smarty_utils.enums import Light, Location, Nodes, NodeState
 
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.utils import Location
 
 
 class BaseState(yasmin.State):
