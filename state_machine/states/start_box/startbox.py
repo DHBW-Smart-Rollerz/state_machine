@@ -15,7 +15,6 @@ class StartBoxStateMachine(StateWrappedStateMachine):
         # External Transitions
         self.TRANSITIONS = {
             "done": DrivingState.NAME,
-            "loop": self.NAME,
             "canceled": "canceled",
         }
 

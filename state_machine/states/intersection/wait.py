@@ -1,12 +1,11 @@
 import time
 
 import yasmin
-from smarty_utils.enums import OBJECTS, Light
+from smarty_utils.enums import OBJECTS, Light, Location
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.utils import Location
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
 

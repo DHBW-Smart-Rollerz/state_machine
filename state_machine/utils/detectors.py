@@ -1,6 +1,4 @@
-from smarty_utils.enums import OBJECTS, SIGNS
-
-from state_machine.utils import Location
+from smarty_utils.enums import OBJECTS, SIGNS, Location
 
 
 def check_dist_to_obj_sign(

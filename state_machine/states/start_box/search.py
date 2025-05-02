@@ -2,13 +2,13 @@ import copy
 import time
 
 import yasmin
-from smarty_utils.enums import SIGNS, Light, Nodes, NodeState
+from smarty_utils.enums import SIGNS, Light, Location, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.states.start_box.ready import ReadyState
-from state_machine.utils import Location, detectors
+from state_machine.utils import detectors
 
 
 class SearchState(BaseState):
@@ -56,7 +56,7 @@ class SearchState(BaseState):
         super().execute(blackboard)
 
         while not self._is_start_box_detected(blackboard):
-            self.log_state("Start Box: Waiting for start box to be open")
+            self.log_state("Start Box: Waiting for stop sign to be detected")
             time.sleep(0.0001)
             if self._check_timeout():
                 yasmin.YASMIN_LOG_WARN(

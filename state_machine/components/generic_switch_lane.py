@@ -1,11 +1,10 @@
 import time
 
-from smarty_utils.enums import Light, Nodes
+from smarty_utils.enums import Light, Location, Nodes
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.utils import Location
 
 
 class GenericSwitchLaneState(BaseState):
