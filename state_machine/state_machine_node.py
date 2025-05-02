@@ -9,7 +9,7 @@ import yasmin
 import yasmin_viewer
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
-from smarty_utils.enums import OBJECTS, SIGNS, Light, Nodes, NodeState
+from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
 from smarty_utils.smarty_node import SmartyNode
 
 from state_machine.components.state_description import BlackBoard
@@ -27,7 +27,6 @@ from state_machine.states.no_passing_zone import NoPassingZoneState
 from state_machine.states.overtake.overtaking import OvertakingStateMachine
 from state_machine.states.parking import ParkingState
 from state_machine.states.start_box.startbox import StartBoxStateMachine
-from state_machine.utils import Location
 
 
 class StateMachine(SmartyNode):
@@ -245,6 +244,7 @@ class StateMachine(SmartyNode):
                     "timestamp": self.get_clock().now().nanoseconds,
                 }
             )
+        return results
 
     def _get_location(self, obj_position: dict) -> tuple:
         """Get the location of the object."""
@@ -282,10 +282,10 @@ class StateMachine(SmartyNode):
         else:
             yasmin.YASMIN_LOG_WARN("No lane coefficients available.")
 
-        if self._debug:
-            self.get_logger().error(
-                f"Object Position: {obj_position}, Left Line Y: {left_line_y}, Right Line Y: {right_line_y}, Location: {loc}"
-            )
+        # if self._debug:
+        #     self.get_logger().error(
+        #         f"Object Position: {obj_position}, Left Line Y: {left_line_y}, Right Line Y: {right_line_y}, Location: {loc}"
+        #     )
         return loc
 
     def object_callback(self, msg: std_msgs.msg.Float32MultiArray):

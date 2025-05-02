@@ -38,26 +38,14 @@ class WaitState(BaseState):
         """
         super().execute(blackboard)
 
-        start_time = time.perf_counter()
         start_location = Location.UNKNOWN
         while start_location == Location.UNKNOWN:
             start_location = self.get_start_location()
             time.sleep(0.0001)
-            if (
-                time.perf_counter() - start_time
-            ) % CONSTANTS.INTERSECTION.LOG_TIME == 0:
-                yasmin.YASMIN_LOG_INFO(
-                    "Intersection - WAIT: Waiting for vehicle to be detected"
-                )
-
+            self.log_state("Intersection: Waiting for vehicle to be detected")
         while self.check_crossed(start_location):
             time.sleep(0.0001)
-            if (
-                time.perf_counter() - start_time
-            ) % CONSTANTS.INTERSECTION.LOG_TIME == 0:
-                yasmin.YASMIN_LOG_INFO(
-                    "Intersection - WAIT: Waiting for vehicle to cross intersection"
-                )
+            self.log_state("Intersection: Waiting for vehicle to cross intersection")
 
         return "done"
 

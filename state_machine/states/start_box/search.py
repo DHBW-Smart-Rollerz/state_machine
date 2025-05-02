@@ -31,7 +31,6 @@ class SearchState(BaseState):
     def __init__(self, debug: bool = False):
         """Initializes the SearchState."""
         self.TRANSITIONS = {
-            "loop": self.NAME,
             "canceled": "canceled",
             "start_sign_detected": ReadyState.NAME,
         }
@@ -55,15 +54,16 @@ class SearchState(BaseState):
             str -- The outcome of the state
         """
         super().execute(blackboard)
-        if self._is_start_box_detected(blackboard):
-            return "start_sign_detected"
-        elif self._check_timeout():
-            yasmin.YASMIN_LOG_WARN(
-                f"Start Box search timeout after {time.perf_counter() - self._init_time} seconds"
-            )
-            return "canceled"
-        else:
-            return "loop"
+
+        while not self._is_start_box_detected(blackboard):
+            self.log_state("Start Box: Waiting for start box to be open")
+            time.sleep(0.0001)
+            if self._check_timeout():
+                yasmin.YASMIN_LOG_WARN(
+                    f"Start Box search timeout after {time.perf_counter() - self._init_time} seconds"
+                )
+                return "canceled"
+        return "start_sign_detected"
 
     def _check_timeout(self) -> bool:
         """
@@ -86,7 +86,6 @@ class SearchState(BaseState):
         Returns:
             bool -- True if the start box is detected for the required duration, False otherwise
         """
-        return True
         # Stop sign in sign list
         signs: list[dict] = copy.copy(blackboard.signs)
 

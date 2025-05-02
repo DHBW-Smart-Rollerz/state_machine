@@ -4,6 +4,7 @@ import yasmin
 from smarty_utils.enums import Light, Nodes, NodeState
 
 from state_machine.components.state_description import BlackBoard, StateDescription
+from state_machine.states import CONSTANTS
 from state_machine.utils import Location
 
 
@@ -37,6 +38,7 @@ class BaseState(yasmin.State):
         self.last_state_time_stamp: int = 0
         self.object_list: list[dict] = []
         self.sign_list: list[dict] = []
+        self.last_log_time: float = 0
 
     def execute(
         self,
@@ -55,3 +57,9 @@ class BaseState(yasmin.State):
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
         self.blackboard = blackboard
         time.sleep(0.0001)
+
+    def log_state(self, message: str):
+        """Log info message."""
+        if int(time.perf_counter() - self.last_log_time) > CONSTANTS.LOG_TIME:
+            yasmin.YASMIN_LOG_INFO(f"{self.NAME} - {message}")
+            self.last_log_time = time.perf_counter()

@@ -1,3 +1,6 @@
+import time
+
+import yasmin
 from smarty_utils.enums import OBJECTS, SIGNS, Light, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
@@ -38,7 +41,6 @@ class DrivingState(BaseState):
         from state_machine.states.parking import ParkingState
 
         self.TRANSITIONS = {
-            "loop": self.NAME,
             "approaching_obstacle": OvertakingStateMachine.NAME,
             "approaching_intersection": IntersectionStateMachine.NAME,
             "approaching_parking_area": ParkingState.NAME,
@@ -72,22 +74,23 @@ class DrivingState(BaseState):
         """
         super().execute(blackboard)
 
-        if self._is_approaching_obstacle():
-            return "approaching_obstacle"
-        elif self._is_approaching_intersection():
-            return "approaching_intersection"
-        elif self._is_approaching_parking_area():
-            return "approaching_parking_area"
-        elif self._is_approaching_barred_area():
-            return "approaching_barred_area"
-        elif self._is_approaching_crosswalk():
-            return "approaching_crosswalk"
-        elif self._is_approaching_express_way():
-            return "approaching_express_way"
-        elif self._is_approaching_no_passing_zone():
-            return "approaching_no_passing_zone"
-        else:
-            return "loop"
+        while True:
+            if self._is_approaching_obstacle():
+                return "approaching_obstacle"
+            elif self._is_approaching_intersection():
+                return "approaching_intersection"
+            elif self._is_approaching_parking_area():
+                return "approaching_parking_area"
+            elif self._is_approaching_barred_area():
+                return "approaching_barred_area"
+            elif self._is_approaching_crosswalk():
+                return "approaching_crosswalk"
+            elif self._is_approaching_express_way():
+                return "approaching_express_way"
+            elif self._is_approaching_no_passing_zone():
+                return "approaching_no_passing_zone"
+            self.log_state("Driving normally")
+            time.sleep(0.0001)
 
     def _is_approaching_obstacle(self) -> bool:
         return check_dist_to_obj_sign(

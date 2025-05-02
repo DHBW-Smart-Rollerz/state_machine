@@ -29,7 +29,7 @@ class ReadyState(BaseState):
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
-        self.TRANSITIONS = {"loop": self.NAME, "start_box_open": "done"}
+        self.TRANSITIONS = {"start_box_open": "done"}
         super().__init__()
 
     def execute(self, blackboard: BlackBoard) -> str:
@@ -44,10 +44,10 @@ class ReadyState(BaseState):
         """
         super().execute(blackboard)
 
-        if self._is_start_box_open(blackboard):
-            return "start_box_open"
-        else:
-            return "loop"
+        while not self._is_start_box_open(blackboard):
+            self.log_state("Start Box: Waiting for start box to be open")
+            time.sleep(0.0001)
+        return "start_box_open"
 
     def _is_start_box_open(self, blackboard: BlackBoard) -> bool:
         """
@@ -59,7 +59,6 @@ class ReadyState(BaseState):
         Returns:
             bool -- True if the startbox is open, False otherwise
         """
-        return True
         # Stop sign in sign list
         signs: list[dict] = copy.copy(blackboard.signs)
 

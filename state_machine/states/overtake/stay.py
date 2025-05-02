@@ -36,10 +36,12 @@ class StayState(BaseState):
         super().execute(blackboard)
 
         # Check if the overtaking is done
-        if self.check_overtake_done():
-            return "overtake_done"
+        while not self.check_overtake_done():
+            self.log_state("Overtake: Waiting for overtaking to be done")
 
-        return "loop"
+            time.sleep(0.0001)
+
+        return "overtake_done"
 
     def check_overtake_done(self):
         """Check if the overtaking is done."""

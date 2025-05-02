@@ -1,3 +1,5 @@
+import time
+
 from smarty_utils.enums import OBJECTS
 
 from state_machine.components.base_state import BaseState
@@ -18,7 +20,6 @@ class ReadyState(BaseState):
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
         self.TRANSITIONS = {
-            "loop": self.NAME,
             "start_overtake": SwitchLaneState.NAME,
         }
         super().__init__(debug)
@@ -35,12 +36,13 @@ class ReadyState(BaseState):
         """
         super().execute(blackboard)
 
-        if check_dist_to_obj_sign(
+        while not check_dist_to_obj_sign(
             self.blackboard.objects,
             [OBJECTS.VEHICLE],
             CONSTANTS.OVERTAKE.START_DIST,
             location=self.blackboard.car_lane,
         ):
-            return "start_overtake"
+            self.log_state("Overtake: Waiting for vehicle to be detected")
+            time.sleep(0.0001)
 
-        return "loop"
+        return "start_overtake"

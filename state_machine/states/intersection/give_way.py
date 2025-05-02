@@ -1,6 +1,5 @@
 import time
 
-import yasmin
 from smarty_utils.enums import OBJECTS, Light
 
 from state_machine.components.base_state import BaseState
@@ -52,10 +51,7 @@ class GiveWayState(BaseState):
             ):
                 return "wait_car"
 
-            if (
-                time.perf_counter() - self.start_time
-            ) % CONSTANTS.INTERSECTION.LOG_TIME == 0:
-                yasmin.YASMIN_LOG_INFO("Intersection - STOP: Searching for vehicle")
+            self.log_state("Intersection: Searching for vehicle")
             time.sleep(0.0001)
 
         return "done"

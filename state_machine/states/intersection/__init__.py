@@ -18,6 +18,3 @@ class INTERSECTION_CONSTANTS:
 
     # Maximum speed in m/s
     MAX_SPEED = 0.5  # m/s
-
-    # The distance to the object in front of the car when overtaking
-    LOG_TIME = 5  # s

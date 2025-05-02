@@ -54,13 +54,6 @@ class ReadyState(BaseState):
             ):
                 return "start_give_way"
 
-            if (
-                time.perf_counter()
-                - self.blackboard.last_timestamp % CONSTANTS.INTERSECTION.LOG_TIME
-                == 0
-            ):
-                self.log(
-                    "Intersection - READY: Waiting for Sign to be detected in distance."
-                )
+            self.log_state("Intersection: Searching for sign")
 
             time.sleep(0.0001)

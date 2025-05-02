@@ -1,3 +1,5 @@
+import time
+
 from smarty_utils.enums import Light, Nodes
 
 from state_machine.components.base_state import BaseState
@@ -11,6 +13,7 @@ class GenericSwitchLaneState(BaseState):
 
     NAME = "switch_lane"
     STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
     )
 
@@ -44,34 +47,32 @@ class GenericSwitchLaneState(BaseState):
         Returns:
             str -- The next state to transition to
         """
-        if self._first_call:
-            goal_lane = Location.opposite(blackboard.car_lane)
-            self.STATE_DESCRIPTION = BlackBoard(
-                max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
-                goal_lane=goal_lane,
-                light_configuration=(
-                    Light.BLINK_LEFT
-                    if goal_lane == Location.LEFT
-                    else Light.BLINK_RIGHT
-                ),
-                node_states={
-                    Nodes.OBJECT_DETECTION: Nodes.ACTIVE,
-                    Nodes.LANE_DETECTION: Nodes.ACTIVE,
-                    Nodes.PATH_PLANNING: Nodes.ACTIVE,
-                    Nodes.CONTROL: Nodes.ACTIVE,
-                    Nodes.STATE_ESTIMATION: Nodes.ACTIVE,
-                },
-            )
-            self._start_location: Location = blackboard.car_lane
-            self._first_call = False
+        goal_lane = Location.opposite(blackboard.car_lane)
+        self.STATE_DESCRIPTION = BlackBoard(
+            max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
+            goal_lane=goal_lane,
+            light_configuration=(
+                Light.BLINK_LEFT if goal_lane == Location.LEFT else Light.BLINK_RIGHT
+            ),
+            node_states={
+                Nodes.OBJECT_DETECTION: Nodes.ACTIVE,
+                Nodes.LANE_DETECTION: Nodes.ACTIVE,
+                Nodes.PATH_PLANNING: Nodes.ACTIVE,
+                Nodes.CONTROL: Nodes.ACTIVE,
+                Nodes.STATE_ESTIMATION: Nodes.ACTIVE,
+            },
+        )
+        self._start_location: Location = blackboard.car_lane
+        self._first_call = False
         super().execute(blackboard)
 
         # Check if the lane switch is done
-        if self.check_lane_switch_done():
+        while not self.check_lane_switch_done():
+            # Check if the lane switch is done
             self.reset()
-            return "switch_lane_done"
-
-        return "loop"
+            self.log_state("Switch Lane: Waiting for lane switch to be done")
+            time.sleep(0.0001)
+        return "switch_lane_done"
 
     def check_lane_switch_done(self):
         """Check if the lane switch is done."""

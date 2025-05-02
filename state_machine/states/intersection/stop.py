@@ -51,10 +51,7 @@ class StopState(BaseState):
 
             time.sleep(0.0001)
 
-            if (
-                time.perf_counter() - self.start_time
-            ) % CONSTANTS.INTERSECTION.LOG_TIME == 0:
-                yasmin.YASMIN_LOG_INFO("Intersection - STOP: Searching for vehicle")
+            self.log_state("Intersection: Searching for vehicle")
 
-        yasmin.YASMIN_LOG_INFO("Intersection - STOP: No vehicle detected, moving on")
+        self.log_state("Intersection: No vehicle detected, continuing")
         return "done"
