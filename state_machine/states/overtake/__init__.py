@@ -2,7 +2,7 @@ class OVERTAKE_CONSTANTS:
     """CONSTANTS for the overtake state machine."""
 
     # The distance to the object in front of the car when overtaking
-    START_DIST = 30  # mm
+    START_DIST = 300  # mm
 
     # The time in seconds until the overtaking is canceled
     TIMEOUT = 30  # s

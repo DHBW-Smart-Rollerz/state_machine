@@ -246,3 +246,7 @@ class BlackBoard(yasmin.Blackboard):
             Location -- The lane where the car is located
         """
         pass  # TODO
+        return Location.UNKNOWN
+
+    def __str__(self):
+        return f"Blackboard(signs={self._signs})"

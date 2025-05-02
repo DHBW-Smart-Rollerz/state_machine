@@ -95,6 +95,7 @@ class StateWrappedStateMachine(BaseState):
 
         self._run_sm = True
         self._outcome = self.sm(self.blackboard)
+        yasmin.YASMIN_LOG_WARN("Internal State Machine finished!")
         self._run_sm = False
 
     def _sm_watchdog_fun(self):
@@ -130,13 +131,15 @@ class StateWrappedStateMachine(BaseState):
 
     def cancel_state(self):
         """Cancel the state machine."""
+        self._outcome = "canceled"
         self.sm.cancel_state()
         self.stop()
-        self._outcome = "canceled"
         return super().cancel_state()
 
     def start_timeout_timer(self, timeout: float):
         """Set the timeout for the state machine."""
         # Start timer to cancel state machine after timeout in seconds
-        self._timer = threading.Timer(timeout, self.cancel_state())
-        self._timer.start()
+        if timeout > 0:
+            self._timer = threading.Timer(timeout, self.cancel_state())
+            self._timer.start()
+            yasmin.YASMIN_LOG_WARN("Canceld with timer.")

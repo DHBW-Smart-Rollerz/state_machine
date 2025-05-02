@@ -1,5 +1,6 @@
 from rclpy.parameter import Parameter
 from smarty_utils.enums import Nodes
+import yasmin
 
 
 class GenericStateParameter:
@@ -27,8 +28,12 @@ class GenericStateParameter:
         """Set the value of the parameter."""
         if value is None:
             return
-        if not isinstance(value, self.type_):
-            raise TypeError(f"Value must be of type {self.type_}")
+        try:
+            if not isinstance(value, self.type_):
+                raise RuntimeError(f"Value must be of type {self.type_}")
+        except TypeError:
+            # yasmin.YASMIN_LOG_WARN(f"Type not checked.")
+            pass
         if self.value != value:
             self._value = value
             self.notify()

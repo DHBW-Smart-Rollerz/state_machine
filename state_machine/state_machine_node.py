@@ -93,7 +93,7 @@ class StateMachine(SmartyNode):
         self.node_state_clients = {
             node: AsyncParameterClient(self, node.value) for node in Nodes
         }
-        self.init_black_board()
+        self.blackboard = self.init_black_board()
         self.init_state_machine()
 
         # Execute the state machine
@@ -141,7 +141,7 @@ class StateMachine(SmartyNode):
             )
         remote_state = StateParameter("remote_state", 0, int)
 
-        self.blackboard = BlackBoard(
+        return BlackBoard(
             light_configuration,
             max_speed,
             goal_lane,
@@ -299,6 +299,7 @@ class StateMachine(SmartyNode):
 
     def sign_callback(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the object detection sign subscriber."""
+        print("Got Signs")
         parsed = self.parse_float32_multiarray(msg)
         signs = self._create_obj_sign(parsed, False)
         self.blackboard.signs = signs
