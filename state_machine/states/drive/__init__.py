@@ -24,3 +24,6 @@ class DRIVE_CONSTANTS:
 
     # Maximum Speed
     MAX_SPEED = 1.2  # m/s
+
+    # State Timeout
+    STATE_TIMEOUT = 5  # seconds

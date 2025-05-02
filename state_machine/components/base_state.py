@@ -39,7 +39,7 @@ class BaseState(yasmin.State):
         self.sign_list: list[dict] = []
         self.last_log_time: float = 0
 
-    def execute(
+    def local_execute(
         self,
         blackboard: BlackBoard,
         update_black_board: bool = True,
@@ -51,11 +51,31 @@ class BaseState(yasmin.State):
             blackboard -- Blackboard object
         """
         if update_black_board:
-            blackboard.last_state = self.NAME
             blackboard.update(self.STATE_DESCRIPTION)
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
         self.blackboard = blackboard
         time.sleep(0.0001)
+
+    def execute(
+        self,
+        blackboard: BlackBoard,
+    ):
+        """
+        Execute the state.
+
+        Arguments:
+            blackboard -- Blackboard object
+        """
+        output = self.local_execute(blackboard)
+        self.set_last_state()
+        return output
+
+    def set_last_state(self, other_state: str = ""):
+        """Set the last state."""
+        if other_state:
+            self.blackboard.last_state = other_state
+        else:
+            self.blackboard.last_state = self.NAME
 
     def log_state(self, message: str):
         """Log info message."""

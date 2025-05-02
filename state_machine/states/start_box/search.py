@@ -43,7 +43,7 @@ class SearchState(BaseState):
         self._first_found_time = -1
         self._counter = 0
 
-    def execute(self, blackboard: BlackBoard) -> str:
+    def local_execute(self, blackboard: BlackBoard) -> str:
         """
         Executes the SearchState.
 
@@ -53,7 +53,7 @@ class SearchState(BaseState):
         Returns:
             str -- The outcome of the state
         """
-        super().execute(blackboard)
+        super().local_execute(blackboard)
 
         while not self._is_start_box_detected(blackboard):
             self.log_state("Start Box: Waiting for stop sign to be detected")
@@ -63,6 +63,7 @@ class SearchState(BaseState):
                     f"Start Box search timeout after {time.perf_counter() - self._init_time} seconds"
                 )
                 return "canceled"
+
         return "start_sign_detected"
 
     def _check_timeout(self) -> bool:

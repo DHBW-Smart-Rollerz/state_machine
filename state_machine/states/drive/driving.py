@@ -61,7 +61,7 @@ class DrivingState(BaseState):
         """
         return []
 
-    def execute(self, blackboard: BlackBoard) -> str:
+    def local_execute(self, blackboard: BlackBoard) -> str:
         """
         Execute the DrivingState.
 
@@ -71,25 +71,55 @@ class DrivingState(BaseState):
         Returns:
             str -- name of the next state
         """
-        super().execute(blackboard)
+        super().local_execute(blackboard)
 
         while True:
-            if self._is_approaching_obstacle():
+            if self._is_approaching_obstacle() and self._check_last_state(
+                self.TRANSITIONS["approaching_obstacle"]
+            ):
                 return "approaching_obstacle"
-            elif self._is_approaching_intersection():
+            elif self._is_approaching_intersection() and self._check_last_state(
+                self.TRANSITIONS["approaching_intersection"]
+            ):
                 return "approaching_intersection"
-            elif self._is_approaching_parking_area():
+            elif self._is_approaching_parking_area() and self._check_last_state(
+                self.TRANSITIONS["approaching_parking_area"]
+            ):
                 return "approaching_parking_area"
-            elif self._is_approaching_barred_area():
+            elif self._is_approaching_barred_area() and self._check_last_state(
+                self.TRANSITIONS["approaching_barred_area"]
+            ):
                 return "approaching_barred_area"
-            elif self._is_approaching_crosswalk():
+            elif self._is_approaching_crosswalk() and self._check_last_state(
+                self.TRANSITIONS["approaching_crosswalk"]
+            ):
                 return "approaching_crosswalk"
-            elif self._is_approaching_express_way():
+            elif self._is_approaching_express_way() and self._check_last_state(
+                self.TRANSITIONS["approaching_express_way"]
+            ):
                 return "approaching_express_way"
-            elif self._is_approaching_no_passing_zone():
+            elif self._is_approaching_no_passing_zone() and self._check_last_state(
+                self.TRANSITIONS["approaching_no_passing_zone"]
+            ):
                 return "approaching_no_passing_zone"
             self.log_state("Driving normally")
             time.sleep(0.0001)
+
+    def _check_last_state(self, state: str) -> bool:
+        """
+        Check if the last state was the given state.
+
+        Arguments:
+            state -- The state to check
+
+        Returns:
+            bool -- True if the last state was the given state, False otherwise
+        """
+        return not (
+            self.blackboard.last_state == state
+            and time.perf_counter() - self.blackboard.last_timestamp
+            < CONSTANTS.DRIVE.STATE_TIMEOUT
+        )
 
     def _is_approaching_obstacle(self) -> bool:
         return check_dist_to_obj_sign(

@@ -21,14 +21,13 @@ class GiveWayState(BaseState):
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
         self.TRANSITIONS = {
-            "loop": self.NAME,
             "done": "done",
             "wait_car": WaitState.NAME,
         }
         self.start_time = time.perf_counter()
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
+    def local_execute(self, blackboard: BlackBoard):
         """
         Execute the state.
 
@@ -38,7 +37,7 @@ class GiveWayState(BaseState):
         Returns:
             str -- The next state to transition to
         """
-        super().execute(blackboard)
+        super().local_execute(blackboard)
 
         while (
             time.perf_counter() - self.start_time

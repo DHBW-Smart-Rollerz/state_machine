@@ -24,7 +24,7 @@ class ReadyState(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
+    def local_execute(self, blackboard: BlackBoard):
         """
         Execute the state.
 
@@ -34,7 +34,7 @@ class ReadyState(BaseState):
         Returns:
             str -- The next state to transition to
         """
-        super().execute(blackboard)
+        super().local_execute(blackboard)
 
         while not check_dist_to_obj_sign(
             self.blackboard.objects,

@@ -11,7 +11,7 @@ class START_BOX_CONSTANTS:
     SEARCH_TIMEOUT = 60.0 * 5  # seconds (5 minutes)
 
     # Time to wait before considering the start box as OPEN
-    READY_TIMEOUT = 60.0  # seconds
+    READY_TIMEOUT = 2.0  # seconds
 
     # Distance threshold for the start box detection
     DISTANCE_THRESH = 500  # millimeters

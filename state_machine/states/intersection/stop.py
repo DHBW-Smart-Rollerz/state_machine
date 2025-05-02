@@ -22,7 +22,6 @@ class StopState(BaseState):
             "done": "done",
             "wait_car": WaitState.NAME,
         }
-        self.start_time = time.perf_counter()
         super().__init__(debug)
 
     def execute(self, blackboard: BlackBoard):
@@ -36,11 +35,9 @@ class StopState(BaseState):
             str -- The next state to transition to
         """
         super().execute(blackboard)
+        start_time = blackboard.last_timestamp
 
-        while (
-            time.perf_counter() - self.start_time
-            <= CONSTANTS.INTERSECTION.NO_CAR_TIMEOUT
-        ):
+        while time.perf_counter() - start_time <= CONSTANTS.INTERSECTION.NO_CAR_TIMEOUT:
             if check_dist_to_obj_sign(
                 self.blackboard.objects,
                 [OBJECTS.VEHICLE],

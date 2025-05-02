@@ -32,7 +32,7 @@ class ReadyState(BaseState):
         self.TRANSITIONS = {"start_box_open": "done"}
         super().__init__()
 
-    def execute(self, blackboard: BlackBoard) -> str:
+    def local_execute(self, blackboard: BlackBoard) -> str:
         """
         Execute the ReadyState.
 
@@ -42,7 +42,7 @@ class ReadyState(BaseState):
         Returns:
             str -- name of the next state
         """
-        super().execute(blackboard)
+        super().local_execute(blackboard)
 
         while not self._is_start_box_open(blackboard):
             self.log_state("Start Box: Waiting for start box to be open")

@@ -22,7 +22,7 @@ class StayState(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
+    def local_execute(self, blackboard: BlackBoard):
         """
         Execute the state.
 
@@ -32,7 +32,7 @@ class StayState(BaseState):
         Returns:
             str -- The next state to transition to
         """
-        super().execute(blackboard)
+        super().local_execute(blackboard)
 
         # Check if the overtaking is done
         while not self.check_overtake_done():

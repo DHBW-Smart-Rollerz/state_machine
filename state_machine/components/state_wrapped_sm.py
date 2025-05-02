@@ -39,7 +39,11 @@ class StateWrappedStateMachine(BaseState):
         self._timer = None
         self._outcome = None
 
-    def execute(self, blackboard: BlackBoard, timeout_time: float = -1.0) -> str:
+    def local_execute(
+        self,
+        blackboard: BlackBoard,
+        timeout_time: float = -1.0,
+    ) -> str:
         """
         Execute the state and start the state machine.
 
@@ -50,7 +54,7 @@ class StateWrappedStateMachine(BaseState):
         Returns:
             str -- Next state (loop) per default
         """
-        super().execute(blackboard, update_black_board=False)
+        super().local_execute(blackboard, update_black_board=False)
         if self._first_call:
             self.reset()
             if timeout_time > 0:

@@ -36,7 +36,7 @@ class GenericSwitchLaneState(BaseState):
         self._first_call = True
         self._start_location = None
 
-    def execute(self, blackboard: BlackBoard):
+    def local_execute(self, blackboard: BlackBoard):
         """
         Execute the state.
 
@@ -63,7 +63,7 @@ class GenericSwitchLaneState(BaseState):
         )
         self._start_location: Location = blackboard.car_lane
         self._first_call = False
-        super().execute(blackboard)
+        super().local_execute(blackboard)
 
         # Check if the lane switch is done
         while not self.check_lane_switch_done():
