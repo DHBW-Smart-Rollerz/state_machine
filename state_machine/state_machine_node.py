@@ -27,6 +27,7 @@ from state_machine.states.no_passing_zone import NoPassingZoneState
 from state_machine.states.overtake.overtaking import OvertakingStateMachine
 from state_machine.states.parking import ParkingState
 from state_machine.states.start_box.startbox import StartBoxStateMachine
+from state_machine.webapp.app import create_and_run_flask_app
 
 
 class StateMachine(SmartyNode):
@@ -102,6 +103,14 @@ class StateMachine(SmartyNode):
         )
         self.state_machine_thread.start()
 
+        if self._debug:
+            self.get_logger().info("State machine initialized.")
+            self.app_thread = threading.Thread(
+                target=lambda: create_and_run_flask_app(self.blackboard),
+            )
+            self.app_thread.daemon = True
+            self.app_thread.start()
+
     def init_black_board(self):
         """Create the black board object."""
         # Define the blackboard
@@ -109,7 +118,7 @@ class StateMachine(SmartyNode):
             "light_configuration", Light.BRAKE, Light, self.lights_publisher_fun
         )
         max_speed = TopicStateParameter(
-            "max_speed", 0.0, float, self.speed_limit_publisher_fun
+            "max_speed", 0.0, float, self.speed_limit_publisher_fun, 30
         )
         goal_lane = TopicStateParameter(
             "goal_lane", Location.RIGHT, Location, self.goal_lane_publisher_fun
@@ -121,7 +130,7 @@ class StateMachine(SmartyNode):
         signs = StateParameter("signs", [], list[dict])
         lane_coefficients = StateParameter("lane_coefficients", {}, dict[str, tuple])
         last_state = TopicStateParameter(
-            "last_state", "initialized", str, self.debug_state_publisher_fun
+            "last_state", "initialized", str, self.debug_state_publisher_fun, 1
         )
         last_timestamp = StateParameter("last_timestamp", time.perf_counter(), float)
         node_states = {}

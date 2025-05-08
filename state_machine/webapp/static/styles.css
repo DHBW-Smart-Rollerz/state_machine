@@ -1,0 +1,44 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background: #007BFF;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
+
+main {
+    padding: 20px;
+}
+
+h1,
+h2 {
+    margin-bottom: 20px;
+}
+
+#parameter-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#parameter-table th,
+#parameter-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+#parameter-table th {
+    background-color: #007BFF;
+    color: white;
+}

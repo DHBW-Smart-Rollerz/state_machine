@@ -125,6 +125,7 @@ class TopicStateParameter(GenericStateParameter):
         value: any,
         type_: any,
         publisher_fun: callable,
+        hz: int = 5,
     ):
         """
         Initialize the state parameter.
@@ -135,6 +136,7 @@ class TopicStateParameter(GenericStateParameter):
         """
         self.publisher_fun = publisher_fun
         self._thread = threading.Thread(None, self.publish_thread)
+        self._hz = hz
         super().__init__(name, value, type_)
 
     @property
@@ -159,10 +161,9 @@ class TopicStateParameter(GenericStateParameter):
         while self._thread.is_alive():
             if self.publisher_fun:
                 self.publisher_fun(self.value)
-                last_time = time.time()
             else:
                 yasmin.YASMIN_LOG_WARN("Publisher function is not set")
-            time.sleep(1 / 30)
+            time.sleep(1 / self._hz)
 
 
 class ParameterStateParameter(GenericStateParameter):

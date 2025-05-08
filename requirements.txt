@@ -4,3 +4,4 @@ rclpy
 flask
 waitress
 expiringdict
+websockets
