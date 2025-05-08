@@ -123,6 +123,15 @@
             }
         };
 
+        // Add this inside your updateUIFromData function
+        function highlight(element) {
+            element.classList.add('highlight');
+            setTimeout(() => {
+                element.classList.remove('highlight');
+            }, 2000);
+        }
+
+
         // Shared function to update UI from either source
         function updateUIFromData(data) {
             // Update elements based on received data
@@ -131,11 +140,50 @@
             document.getElementById('light-configuration').innerText = data.light_configuration;
 
             // Update additional elements if they exist and have corresponding data
-            if (document.getElementById('current-state') && data.state) {
-                document.getElementById('current-state').innerText = data.state;
+            if (document.getElementById('current-state') && data.current_state) {
+                document.getElementById('current-state').innerText = data.current_state;
             }
             if (document.getElementById('car-lane') && data.car_lane) {
                 document.getElementById('car-lane').innerText = data.car_lane;
+            }
+
+            // Update objects and signs
+            // Update objects table
+            const objectsList = document.getElementById('objects-list');
+            const currentObjectsHTML = objectsList.innerHTML;
+            let newObjectsHTML = '';
+            if (data.objects && data.objects.length > 0) {
+                data.objects.forEach(obj => {
+                    newObjectsHTML += `
+                        <tr>
+                            <td>${obj.name}</td>
+                            <td>${obj.location}</td>
+                            <td>${obj.distance}</td>
+                        </tr>
+                    `;
+                });
+            }
+            if (currentObjectsHTML !== newObjectsHTML) {
+                objectsList.innerHTML = newObjectsHTML;
+            }
+
+            // Update signs table
+            const signsList = document.getElementById('signs-list');
+            const currentSignsHTML = signsList.innerHTML;
+            let newSignsHTML = '';
+            if (data.signs && data.signs.length > 0) {
+                data.signs.forEach(sign => {
+                    newSignsHTML += `
+                        <tr>
+                            <td>${sign.name}</td>
+                            <td>${sign.location}</td>
+                            <td>${sign.distance}</td>
+                        </tr>
+                    `;
+                });
+            }
+            if (currentSignsHTML !== newSignsHTML) {
+                signsList.innerHTML = newSignsHTML;
             }
         }
     </script>

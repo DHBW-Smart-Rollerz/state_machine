@@ -118,6 +118,7 @@ def create_app(blackboard: BlackBoard):
                     - "distance" (varied): The sign's distance.
         """
         params = {
+            "current_state": str(app.blackboard.current_state),
             "light_configuration": str(app.blackboard.light_configuration),
             "max_speed": app.blackboard.max_speed,
             "goal_lane": str(app.blackboard.goal_lane),
@@ -224,7 +225,7 @@ async def websocket_handler(websocket, _, blackboard):
             "goal_lane": str(blackboard.goal_lane),
         }
         await websocket.send(json.dumps(params))
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
 
 def create_and_run_flask_app(blackboard):

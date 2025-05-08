@@ -82,6 +82,7 @@ class BlackBoard(yasmin.Blackboard):
         self._last_timestamp = last_timestamp
         self._node_states = node_states
         self._remote_state = remote_state
+        self._current_state = "No State"
 
     def update(self, state_description: StateDescription):
         """
@@ -214,6 +215,12 @@ class BlackBoard(yasmin.Blackboard):
             self._last_timestamp.value = timestamp
 
     @property
+    def current_state(self) -> str:
+        """Get the current state."""
+        with self.__lock:
+            return self._current_state
+
+    @property
     def node_states(self) -> dict[str, NodeState]:
         """Get the node states."""
         with self.__lock:
@@ -249,4 +256,10 @@ class BlackBoard(yasmin.Blackboard):
         return Location.UNKNOWN
 
     def __str__(self):
+        """
+        String representation of the blackboard.
+
+        Returns:
+            str -- String representation of the blackboard
+        """
         return f"Blackboard(signs={self._signs})"

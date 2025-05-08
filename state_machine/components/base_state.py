@@ -52,6 +52,7 @@ class BaseState(yasmin.State):
         """
         if update_black_board:
             blackboard.update(self.STATE_DESCRIPTION)
+            blackboard._current_state = self.NAME
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
         self.blackboard = blackboard
         time.sleep(0.0001)
