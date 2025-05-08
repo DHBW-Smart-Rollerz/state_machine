@@ -1,6 +1,9 @@
+import threading
+import time
+
+import yasmin
 from rclpy.parameter import Parameter
 from smarty_utils.enums import Nodes
-import yasmin
 
 
 class GenericStateParameter:
@@ -17,6 +20,8 @@ class GenericStateParameter:
         self.name = name
         self.type_ = type_
         self._value = value
+
+        self.notify()
 
     @property
     def value(self):
@@ -90,8 +95,8 @@ class CallbackStateParameter(GenericStateParameter):
             type_ -- Type of the parameter
             callback -- Callback function to be called when the parameter changes
         """
-        super().__init__(name, value, type_)
         self.callback = callback
+        super().__init__(name, value, type_)
 
     @property
     def callback(self):
@@ -128,8 +133,9 @@ class TopicStateParameter(GenericStateParameter):
             name -- Name of the parameter
             value -- Value of the parameter
         """
-        super().__init__(name, value, type_)
         self.publisher_fun = publisher_fun
+        self._thread = threading.Thread(None, self.publish_thread)
+        super().__init__(name, value, type_)
 
     @property
     def publisher_fun(self):
@@ -143,8 +149,20 @@ class TopicStateParameter(GenericStateParameter):
 
     def notify(self) -> None:
         """Notify the subscribers about the parameter change."""
-        assert self.publisher_fun, "Publisher is not set"
-        self.publisher_fun(self.value)
+        if self._thread.is_alive():
+            return
+        self._thread.start()
+
+    def publish_thread(self):
+        """Publish the parameter in a separate thread."""
+        assert self.publisher_fun, "Publisher function is not set"
+        while self._thread.is_alive():
+            if self.publisher_fun:
+                self.publisher_fun(self.value)
+                last_time = time.time()
+            else:
+                yasmin.YASMIN_LOG_WARN("Publisher function is not set")
+            time.sleep(1 / 30)
 
 
 class ParameterStateParameter(GenericStateParameter):
@@ -168,9 +186,9 @@ class ParameterStateParameter(GenericStateParameter):
             nodes -- _nodes_ to set the parameter
             client_setter_fun -- _client setter function_ to set the parameter
         """
-        super().__init__(name, value, type_)
         self.nodes = nodes
         self.client_setter_fun = client_setter_fun
+        super().__init__(name, value, type_)
 
     @property
     def nodes(self):

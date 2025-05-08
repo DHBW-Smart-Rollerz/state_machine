@@ -44,7 +44,7 @@ class ReadyState(BaseState):
         """
         super().local_execute(blackboard)
 
-        while not self._is_start_box_open(blackboard):
+        while self._is_start_box_open(blackboard):
             self.log_state("Start Box: Waiting for start box to be open")
             time.sleep(0.0001)
         return "start_box_open"
@@ -74,6 +74,6 @@ class ReadyState(BaseState):
             yasmin.YASMIN_LOG_WARN(
                 f"Start Box open timeout after {current_time - self._init_time} seconds"
             )
-            return True
+            return False
 
-        return not detected
+        return detected

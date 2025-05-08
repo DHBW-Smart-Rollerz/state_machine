@@ -38,8 +38,9 @@ class ReadyState(BaseState):
             str -- The next state to transition to
         """
         super().execute(blackboard)
+        start = time.time()
 
-        while True:
+        while time.time() - start < CONSTANTS.INTERSECTION.READY_TIMEOUT:
             if check_dist_to_obj_sign(
                 self.blackboard.signs,
                 [SIGNS.STOP],
@@ -57,3 +58,5 @@ class ReadyState(BaseState):
             self.log_state("Intersection: Searching for sign")
 
             time.sleep(0.0001)
+
+        return "canceled"
