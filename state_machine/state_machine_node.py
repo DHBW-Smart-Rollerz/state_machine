@@ -47,7 +47,7 @@ class StateMachine(SmartyNode):
                 "object_topic": "/object_detection/object",
                 # Publisher topics
                 "lights_topic": "/lights",
-                "speed_limit_topic": "/control/velocity/target",
+                "speed_limit_topic": "/control/velocity/target2",
                 "car_lane_topic": "/state_machine/car_lane",
                 "goal_lane_topic": "/state_machine/goal_lane",
                 "debug_state_topic": "/state_machine/debug/state",
@@ -273,21 +273,21 @@ class StateMachine(SmartyNode):
             left_line_y = left_line_poly(lx)
             right_line_y = right_line_poly(rx)
             if ly < left_line_y and ry < right_line_y:
-                loc = Location.LEFT
-            elif ly > left_line_y and ry > right_line_y:
                 loc = Location.RIGHT
+            elif ly > left_line_y and ry > right_line_y:
+                loc = Location.LEFT
         elif left_line_poly is not None:
             left_line_y = left_line_poly(lx)
             if ly < left_line_y and ry < left_line_y:
-                loc = Location.LEFT
-            elif ly > left_line_y and ry > left_line_y:
                 loc = Location.RIGHT
+            elif ly > left_line_y and ry > left_line_y:
+                loc = Location.LEFT
         elif right_line_poly is not None:
             right_line_y = right_line_poly(rx)
             if ly < right_line_y and ry < right_line_y:
-                loc = Location.RIGHT
-            elif ly > right_line_y and ry > right_line_y:
                 loc = Location.LEFT
+            elif ly > right_line_y and ry > right_line_y:
+                loc = Location.RIGHT
         else:
             yasmin.YASMIN_LOG_WARN("No lane coefficients available.")
 
@@ -311,6 +311,7 @@ class StateMachine(SmartyNode):
         print("Got Signs")
         parsed = self.parse_float32_multiarray(msg)
         signs = self._create_obj_sign(parsed, False)
+        self.get_logger().info(f"Object List: {signs}")
         self.blackboard.signs = signs
         # if self._debug:
         #     self.get_logger().info(f"Sign List: {signs}")

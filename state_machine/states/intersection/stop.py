@@ -13,7 +13,7 @@ from state_machine.utils.detectors import check_dist_to_obj_sign
 class StopState(BaseState):
     """Handling stopping intersection."""
 
-    NAME = "stop_intersection"
+    NAME = "intersection-stop"
     STATE_DESCRIPTION = StateDescription(light_configuration=Light.BRAKE, max_speed=0)
 
     def __init__(self, debug: bool = False):
@@ -40,7 +40,7 @@ class StopState(BaseState):
         while time.perf_counter() - start_time <= CONSTANTS.INTERSECTION.NO_CAR_TIMEOUT:
             if check_dist_to_obj_sign(
                 self.blackboard.objects,
-                [OBJECTS.VEHICLE],
+                [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
                 CONSTANTS.INTERSECTION.VEHICLE_DIST,
             ):
                 return "wait_car"

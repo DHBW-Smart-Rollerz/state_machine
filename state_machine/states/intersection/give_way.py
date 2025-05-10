@@ -12,7 +12,7 @@ from state_machine.utils.detectors import check_dist_to_obj_sign
 class GiveWayState(BaseState):
     """Handling give way intersection."""
 
-    NAME = "give_way"
+    NAME = "intersection-give_way"
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.INTERSECTION.GIVE_WAY_MAX_SPEED,

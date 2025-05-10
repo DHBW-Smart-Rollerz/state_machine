@@ -13,7 +13,7 @@ from state_machine.utils.detectors import check_dist_to_obj_sign
 class ReadyState(BaseState):
     """Ready for starting the overtaking."""
 
-    NAME = "ready"
+    NAME = "intersection-ready"
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.INTERSECTION.MAX_SPEED,
@@ -24,6 +24,7 @@ class ReadyState(BaseState):
         self.TRANSITIONS = {
             "start_stop": StopState.NAME,
             "start_give_way": GiveWayState.NAME,
+            "canceled": "canceled",
         }
         super().__init__(debug)
 

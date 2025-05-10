@@ -12,7 +12,7 @@ from state_machine.utils.detectors import check_dist_to_obj_sign
 class ReadyState(BaseState):
     """Ready for starting the overtaking."""
 
-    NAME = "ready"
+    NAME = "overtake-ready"
     STATE_DESCRIPTION = StateDescription(
         max_speed=CONSTANTS.OVERTAKE.MAX_SPEED,
     )
@@ -38,7 +38,7 @@ class ReadyState(BaseState):
 
         while not check_dist_to_obj_sign(
             self.blackboard.objects,
-            [OBJECTS.VEHICLE],
+            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
             CONSTANTS.OVERTAKE.START_DIST,
             location=self.blackboard.car_lane,
         ):

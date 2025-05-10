@@ -13,7 +13,7 @@ from state_machine.utils import detectors
 class ReadyState(BaseState):
     """Ready to start state."""
 
-    NAME = "ready"
+    NAME = "startbox-ready"
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.NORMAL,
         max_speed=0.0,

@@ -1,6 +1,6 @@
 import time
 
-from smarty_utils.enums import Light, Location, Nodes
+from smarty_utils.enums import Light, Location, NodeState, Nodes
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
@@ -47,18 +47,18 @@ class GenericSwitchLaneState(BaseState):
             str -- The next state to transition to
         """
         goal_lane = Location.opposite(blackboard.car_lane)
-        self.STATE_DESCRIPTION = BlackBoard(
+        self.STATE_DESCRIPTION = StateDescription(
             max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
             goal_lane=goal_lane,
             light_configuration=(
                 Light.BLINK_LEFT if goal_lane == Location.LEFT else Light.BLINK_RIGHT
             ),
             node_states={
-                Nodes.OBJECT_DETECTION: Nodes.ACTIVE,
-                Nodes.LANE_DETECTION: Nodes.ACTIVE,
-                Nodes.PATH_PLANNING: Nodes.ACTIVE,
-                Nodes.CONTROL: Nodes.ACTIVE,
-                Nodes.STATE_ESTIMATION: Nodes.ACTIVE,
+                Nodes.OBJECT_DETECTION: NodeState.ACTIVE,
+                Nodes.LANE_DETECTION: NodeState.ACTIVE,
+                Nodes.PATH_PLANNING: NodeState.ACTIVE,
+                Nodes.CONTROL: NodeState.ACTIVE,
+                Nodes.STATE_ESTIMATION: NodeState.ACTIVE,
             },
         )
         self._start_location: Location = blackboard.car_lane

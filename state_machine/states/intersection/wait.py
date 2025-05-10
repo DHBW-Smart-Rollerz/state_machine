@@ -12,7 +12,7 @@ from state_machine.utils.detectors import check_dist_to_obj_sign
 class WaitState(BaseState):
     """Handling waiting on car to cross intersection."""
 
-    NAME = "wait_intersection"
+    NAME = "intersection-wait"
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.BRAKE,
         max_speed=0,
@@ -42,7 +42,11 @@ class WaitState(BaseState):
             start_location = self.get_start_location()
             time.sleep(0.0001)
             self.log_state("Intersection: Waiting for vehicle to be detected")
-        while self.check_crossed(start_location):
+        time.sleep(2)
+        self.log_state(
+            f"Intersection: Vehicle detected at {start_location}; {self.check_crossed(start_location)}; {Location.opposite(start_location)}"
+        )
+        while not self.check_crossed(start_location):
             time.sleep(0.0001)
             self.log_state("Intersection: Waiting for vehicle to cross intersection")
 
@@ -58,11 +62,16 @@ class WaitState(BaseState):
         Returns:
             bool -- True if the car has crossed the intersection, False otherwise
         """
-        return not check_dist_to_obj_sign(
+        return check_dist_to_obj_sign(
             self.blackboard.objects,
-            [OBJECTS.VEHICLE],
+            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
             CONSTANTS.INTERSECTION.VEHICLE_DIST,
-            start_location,  # TODO: Think about this logic
+            Location.opposite(start_location),
+        ) or check_dist_to_obj_sign(
+            self.blackboard.objects,
+            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
+            CONSTANTS.INTERSECTION.VEHICLE_DIST,
+            Location.UNKNOWN,
         )
 
     def get_start_location(self):
@@ -74,7 +83,7 @@ class WaitState(BaseState):
         """
         for obj in self.blackboard.objects:
             if (
-                obj["name"] == OBJECTS.VEHICLE
+                obj["name"] in [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN]
                 and obj["distance"] < CONSTANTS.INTERSECTION.VEHICLE_DIST
             ):
                 return obj["location"]

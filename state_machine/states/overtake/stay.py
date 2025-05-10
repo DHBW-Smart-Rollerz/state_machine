@@ -12,7 +12,7 @@ from state_machine.utils.detectors import check_dist_to_obj_sign
 class StayState(BaseState):
     """Stay in the lane during overtaking."""
 
-    NAME = "stay"
+    NAME = "overtake-stay"
 
     def __init__(self, debug: bool = False):
         """Initialize the StayState."""

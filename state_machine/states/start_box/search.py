@@ -14,7 +14,7 @@ from state_machine.utils import detectors
 class SearchState(BaseState):
     """Search state class."""
 
-    NAME = "search_start_box"
+    NAME = "startbox-search"
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.BRAKE,
         max_speed=0.0,
