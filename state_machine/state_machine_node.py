@@ -315,7 +315,6 @@ class StateMachine(SmartyNode):
         print("Got Signs")
         parsed = self.parse_float32_multiarray(msg)
         signs = self._create_obj_sign(parsed, False)
-        self.get_logger().info(f"Object List: {signs}")
         self.blackboard.signs = signs
         # if self._debug:
         #     self.get_logger().info(f"Sign List: {signs}")
@@ -409,15 +408,18 @@ class StateMachine(SmartyNode):
         """
         if isinstance(params, Parameter):
             params = [params]
+        for i in range(len(params)):
+            if params[i].name.endswith("_state"):
+                params[i]._name = "state"
         client = self.node_state_clients[node]
-        if client.services_are_ready():
-            future = client.set_parameters(params)
-            future.add_done_callback(self.get_parameter_callback(node))
-            return True
-        else:
-            self.get_logger().error(f"Client {node.value} is not ready.")
-            return False
-
+        
+        self.get_logger().info(
+            f"Setting parameter {params[0].name}:{params[0].value} for {node.value}"
+        )
+        future = client.set_parameters(params)
+        future.add_done_callback(self.get_parameter_callback(node))
+        return True
+        
     def get_parameter_callback(self, node: Nodes):
         """
         Get the callback for the parameter setter.
@@ -436,9 +438,9 @@ class StateMachine(SmartyNode):
                 response = future.result()
                 if self._debug:
                     self.get_logger().info(
-                        f"Set parameter {response.name} to {response.value} for {node.value}"
+                        f"Set parameter {response} for {node.value}"
                     )
-                return response.successful
+                return response
             except Exception as e:
                 self.get_logger().error(
                     f"Failed to set parameter for {node.value}: {e}"
