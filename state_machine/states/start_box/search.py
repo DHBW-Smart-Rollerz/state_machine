@@ -18,7 +18,7 @@ class SearchState(BaseState):
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.BRAKE,
         max_speed=0.0,
-        goal_lane=Location.RIGHT,
+        goal_lane=Location.RIGHT_LANE,
         node_states={
             Nodes.OBJECT_DETECTION: NodeState.ACTIVE,
             Nodes.LANE_DETECTION: NodeState.INACTIVE,

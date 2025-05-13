@@ -13,10 +13,7 @@ class GiveWayState(BaseState):
     """Handling give way intersection."""
 
     NAME = "intersection-give_way"
-    STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.NORMAL,
-        max_speed=CONSTANTS.INTERSECTION.GIVE_WAY_MAX_SPEED,
-    )
+    STATE_DESCRIPTION = StateDescription(light_configuration=Light.BRAKE, max_speed=0)
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
@@ -24,10 +21,9 @@ class GiveWayState(BaseState):
             "done": "done",
             "wait_car": WaitState.NAME,
         }
-        self.start_time = time.perf_counter()
         super().__init__(debug)
 
-    def local_execute(self, blackboard: BlackBoard):
+    def execute(self, blackboard: BlackBoard):
         """
         Execute the state.
 
@@ -37,20 +33,20 @@ class GiveWayState(BaseState):
         Returns:
             str -- The next state to transition to
         """
-        super().local_execute(blackboard)
+        super().execute(blackboard)
+        start_time = blackboard.last_timestamp
 
-        while (
-            time.perf_counter() - self.start_time
-            <= CONSTANTS.INTERSECTION.NO_CAR_TIMEOUT
-        ):
+        while time.perf_counter() - start_time <= CONSTANTS.INTERSECTION.GIVE_NO_CAR_TIMEOUT:
             if check_dist_to_obj_sign(
                 self.blackboard.objects,
-                [OBJECTS.VEHICLE],
+                [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
                 CONSTANTS.INTERSECTION.VEHICLE_DIST,
             ):
                 return "wait_car"
 
-            self.log_state("Intersection: Searching for vehicle")
             time.sleep(0.0001)
 
+            self.log_state("Intersection: Searching for vehicle")
+
+        self.log_state("Intersection: No vehicle detected, continuing")
         return "done"

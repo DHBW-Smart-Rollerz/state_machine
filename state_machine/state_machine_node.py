@@ -4,6 +4,7 @@ import time
 import geometry_msgs.msg
 import numpy as np
 import rclpy
+from state_machine.utils.detectors import get_car_location, get_object_location
 import std_msgs.msg
 import yasmin
 import yasmin_viewer
@@ -244,7 +245,9 @@ class StateMachine(SmartyNode):
                 "bottom_right_x": obj[3],
                 "bottom_right_y": obj[4],
             }
-            obj_location = self._get_location(obj_position)
+            left_lane = self.blackboard.lane_coefficients.get("left", None)
+            right_lane = self.blackboard.lane_coefficients.get("right", None)
+            obj_location = get_object_location(obj_position, left_lane, right_lane)
             obj_dist = self._calc_dist(obj_position)
             obj_name = OBJECTS(obj_id) if is_object else SIGNS(obj_id)
             results.append(
@@ -259,56 +262,12 @@ class StateMachine(SmartyNode):
             )
         return results
 
-    def _get_location(self, obj_position: dict) -> tuple:
-        """Get the location of the object."""
-        assert isinstance(obj_position, dict), "Invalid object position type"
-        lx = obj_position["bottom_left_x"]
-        ly = obj_position["bottom_left_y"]
-        rx = obj_position["bottom_right_x"]
-        ry = obj_position["bottom_right_y"]
-        left_line_poly = self.blackboard.lane_coefficients.get("left", None)
-        right_line_poly = self.blackboard.lane_coefficients.get("right", None)
-        loc = Location.UNKNOWN
-        left_line_y = None
-        right_line_y = None
-
-        # Check which lane the object is in
-        if left_line_poly is not None and right_line_poly is not None:
-            left_line_y = left_line_poly(lx)
-            right_line_y = right_line_poly(rx)
-            if ly < left_line_y and ry < right_line_y:
-                loc = Location.RIGHT
-            elif ly > left_line_y and ry > right_line_y:
-                loc = Location.LEFT
-        elif left_line_poly is not None:
-            left_line_y = left_line_poly(lx)
-            if ly < left_line_y and ry < left_line_y:
-                loc = Location.RIGHT
-            elif ly > left_line_y and ry > left_line_y:
-                loc = Location.LEFT
-        elif right_line_poly is not None:
-            right_line_y = right_line_poly(rx)
-            if ly < right_line_y and ry < right_line_y:
-                loc = Location.LEFT
-            elif ly > right_line_y and ry > right_line_y:
-                loc = Location.RIGHT
-        else:
-            yasmin.YASMIN_LOG_WARN("No lane coefficients available.")
-
-        # if self._debug:
-        #     self.get_logger().error(
-        #         f"Object Position: {obj_position}, Left Line Y: {left_line_y}, Right Line Y: {right_line_y}, Location: {loc}"
-        #     )
-        return loc
-
     def object_callback(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the object detection object subscriber."""
         # Add the object to the blackboard
         parsed = self.parse_float32_multiarray(msg)
         objects = self._create_obj_sign(parsed, True)
         self.blackboard.objects = objects
-        # if self._debug:
-        #     self.get_logger().info(f"Object List: {objects}")
 
     def sign_callback(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the object detection sign subscriber."""
@@ -316,8 +275,6 @@ class StateMachine(SmartyNode):
         parsed = self.parse_float32_multiarray(msg)
         signs = self._create_obj_sign(parsed, False)
         self.blackboard.signs = signs
-        # if self._debug:
-        #     self.get_logger().info(f"Sign List: {signs}")
 
     def new_remote_state(self, msg: std_msgs.msg.UInt8):
         """Callback function for the remote state subscriber."""
@@ -328,18 +285,20 @@ class StateMachine(SmartyNode):
 
     def new_left_lane(self, msg: geometry_msgs.msg.Vector3):
         """Callback function for the left lane subscriber."""
-        # if self._debug:
-        # self.get_logger().info(f"Left Lane: {msg}")
         line_coefs = [msg.x, msg.y, msg.z]
         self.blackboard.lane_coefficients["left"] = np.poly1d(line_coefs)
+        left_lane = self.blackboard.lane_coefficients.get("left", None)
+        right_lane = self.blackboard.lane_coefficients.get("right", None)
+        self.blackboard.car_lane = get_car_location(left_lane, right_lane)
         return True
 
     def new_right_lane(self, msg: geometry_msgs.msg.Vector3):
         """Callback function for the right lane subscriber."""
-        # if self._debug:
-        # self.get_logger().info(f"Right Lane: {msg}")
         line_coefs = [msg.x, msg.y, msg.z]
         self.blackboard.lane_coefficients["right"] = np.poly1d(line_coefs)
+        left_lane = self.blackboard.lane_coefficients.get("left", None)
+        right_lane = self.blackboard.lane_coefficients.get("right", None)
+        self.blackboard.car_lane = get_car_location(left_lane, right_lane)
         return True
 
     ##############################
@@ -351,8 +310,6 @@ class StateMachine(SmartyNode):
         msg = std_msgs.msg.UInt8()
         msg.data = light_configuration.value
         self.lights_topic.publish(msg)
-        # if self._debug:
-        # self.get_logger().info(f"Light Configuration: {light_configuration}")
         return True
 
     def speed_limit_publisher_fun(self, speed_limit: float):
@@ -360,8 +317,6 @@ class StateMachine(SmartyNode):
         msg = std_msgs.msg.Float32()
         msg.data = speed_limit
         self.speed_limit_topic.publish(msg)
-        # if self._debug:
-        # self.get_logger().info(f"Speed Limit: {speed_limit}")
         return True
 
     def car_lane_publisher_fun(self, car_lane: Location):
@@ -369,8 +324,6 @@ class StateMachine(SmartyNode):
         msg = std_msgs.msg.String()
         msg.data = car_lane.value
         self.car_lane_topic.publish(msg)
-        # if self._debug:
-        # self.get_logger().info(f"Car Lane: {car_lane}")
         return True
 
     def goal_lane_publisher_fun(self, goal_lane: Location):
@@ -378,8 +331,6 @@ class StateMachine(SmartyNode):
         msg = std_msgs.msg.String()
         msg.data = goal_lane.value
         self.goal_lane_topic.publish(msg)
-        # if self._debug:
-        # self.get_logger().info(f"Goal Lane: {goal_lane}")
         return True
 
     def debug_state_publisher_fun(self, state: str):
@@ -387,8 +338,6 @@ class StateMachine(SmartyNode):
         msg = std_msgs.msg.String()
         msg.data = f"{state}"
         self.debug_state_topic.publish(msg)
-        # if self._debug:
-        # self.get_logger().info(f"Debug State: {state}")
         return True
 
     ################################

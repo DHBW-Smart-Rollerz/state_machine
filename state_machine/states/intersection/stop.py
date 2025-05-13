@@ -37,7 +37,7 @@ class StopState(BaseState):
         super().execute(blackboard)
         start_time = blackboard.last_timestamp
 
-        while time.perf_counter() - start_time <= CONSTANTS.INTERSECTION.NO_CAR_TIMEOUT:
+        while time.perf_counter() - start_time <= CONSTANTS.INTERSECTION.STOP_NO_CAR_TIMEOUT:
             if check_dist_to_obj_sign(
                 self.blackboard.objects,
                 [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],

@@ -16,7 +16,7 @@ class DrivingState(BaseState):
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.DRIVE.MAX_SPEED,
-        goal_lane=Location.RIGHT,
+        goal_lane=Location.RIGHT_LANE,
         node_states={
             Nodes.OBJECT_DETECTION: NodeState.ACTIVE,
             Nodes.LANE_DETECTION: NodeState.ACTIVE,
@@ -74,11 +74,7 @@ class DrivingState(BaseState):
         super().local_execute(blackboard)
 
         while True:
-            if self._is_approaching_obstacle() and self._check_last_state(
-                self.TRANSITIONS["approaching_obstacle"]
-            ):
-                return "approaching_obstacle"
-            elif self._is_approaching_intersection() and self._check_last_state(
+            if self._is_approaching_intersection() and self._check_last_state(
                 self.TRANSITIONS["approaching_intersection"]
             ):
                 return "approaching_intersection"
@@ -102,6 +98,10 @@ class DrivingState(BaseState):
                 self.TRANSITIONS["approaching_no_passing_zone"]
             ):
                 return "approaching_no_passing_zone"
+            elif self._is_approaching_obstacle() and self._check_last_state(
+                self.TRANSITIONS["approaching_obstacle"]
+            ):
+                return "approaching_obstacle"
             self.log_state("Driving normally")
             time.sleep(0.0001)
 
@@ -127,6 +127,11 @@ class DrivingState(BaseState):
             OBJECTS.VEHICLE,
             CONSTANTS.DRIVE.OVERTAKING_THRESHOLD,
             location=self.blackboard.car_lane,
+        ) and not check_dist_to_obj_sign(
+            self.blackboard.signs,
+            [SIGNS.STOP, SIGNS.GIVE_WAY, SIGNS.PRIORITY_ONCOMING_TRAFFIC],
+            CONSTANTS.DRIVE.INTERSECTION_THRESHOLD,
+            location=Location.NOT_RELEVANT,
         )
 
     def _is_approaching_intersection(
