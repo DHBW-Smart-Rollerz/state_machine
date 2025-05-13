@@ -185,7 +185,6 @@ class BlackBoard(yasmin.Blackboard):
         """Set the lane coefficients."""
         with self.__lock:
             self._lane_coefficients.value = coefficients
-            self.check_car_lane()
 
     @property
     def last_state(self) -> str:
@@ -244,16 +243,6 @@ class BlackBoard(yasmin.Blackboard):
         """Set the remote state."""
         with self.__lock:
             self._remote_state.value = state
-
-    def check_car_lane(self) -> Location:
-        """
-        Checks if the car is in the left or right lane.
-
-        Returns:
-            Location -- The lane where the car is located
-        """
-        pass  # TODO
-        return Location.UNKNOWN
 
     def __str__(self):
         """

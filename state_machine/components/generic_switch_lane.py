@@ -1,5 +1,7 @@
 import time
 
+import rclpy
+import rclpy.logging
 from smarty_utils.enums import Light, Location, NodeState, Nodes
 
 from state_machine.components.base_state import BaseState
@@ -26,15 +28,9 @@ class GenericSwitchLaneState(BaseState):
             "switch_lane_done": final_state,
         }
 
-        self._start_location = None
-        self._first_call = True
+        self._goal_lane = None
 
         super().__init__(debug)
-
-    def reset(self):
-        """Reset the state."""
-        self._first_call = True
-        self._start_location = None
 
     def local_execute(self, blackboard: BlackBoard):
         """
@@ -46,12 +42,12 @@ class GenericSwitchLaneState(BaseState):
         Returns:
             str -- The next state to transition to
         """
-        goal_lane = Location.opposite(blackboard.car_lane)
+        self._goal_lane = Location.opposite(blackboard.car_lane)
         self.STATE_DESCRIPTION = StateDescription(
             max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
-            goal_lane=goal_lane,
+            goal_lane=self._goal_lane,
             light_configuration=(
-                Light.BLINK_LEFT if goal_lane == Location.LEFT else Light.BLINK_RIGHT
+                Light.BLINK_LEFT if self._goal_lane == Location.LEFT_LANE else Light.BLINK_RIGHT
             ),
             node_states={
                 Nodes.OBJECT_DETECTION: NodeState.ACTIVE,
@@ -61,19 +57,19 @@ class GenericSwitchLaneState(BaseState):
                 Nodes.STATE_ESTIMATION: NodeState.ACTIVE,
             },
         )
-        self._start_location: Location = blackboard.car_lane
-        self._first_call = False
         super().local_execute(blackboard)
 
         # Check if the lane switch is done
         while not self.check_lane_switch_done():
             # Check if the lane switch is done
-            self.reset()
             self.log_state("Switch Lane: Waiting for lane switch to be done")
             time.sleep(0.0001)
         return "switch_lane_done"
 
     def check_lane_switch_done(self):
         """Check if the lane switch is done."""
-        if self.car_location != self._start_location:
+        rclpy.logging.get_logger("state_machine").info(
+            f"Switch Lane: Lane switch done. Start location: {self._goal_lane}, Current location: {self.blackboard.car_lane}"
+        )
+        if self.blackboard.car_lane == self._goal_lane:
             return True

@@ -8,7 +8,7 @@ class DRIVE_CONSTANTS:
     BARRED_AREA_THRESHOLD = 500  # mm
 
     # Overtaking Threshold
-    OVERTAKING_THRESHOLD = 500  # mm
+    OVERTAKING_THRESHOLD = 900  # mm
 
     # Parking Area Threshold
     PARKING_THRESHOLD = 500  # mm

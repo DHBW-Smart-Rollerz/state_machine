@@ -31,12 +31,6 @@ class BaseState(yasmin.State):
         self._init_time = time.perf_counter()
         yasmin.YASMIN_LOG_INFO(f"Entering {self.NAME} state")
         self.blackboard: BlackBoard = None
-        self.debug: bool = debug
-        self.car_location: Location = Location.UNKNOWN
-        self.last_state: object = None
-        self.last_state_time_stamp: int = 0
-        self.object_list: list[dict] = []
-        self.sign_list: list[dict] = []
         self.last_log_time: float = 0
 
     def local_execute(
