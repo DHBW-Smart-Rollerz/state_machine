@@ -4,19 +4,19 @@ from state_machine.components.state_description import BlackBoard
 from state_machine.components.state_wrapped_sm import StateWrappedStateMachine
 from state_machine.states import CONSTANTS
 from state_machine.states.drive.driving import DrivingState
-from state_machine.states.overtake.ready import ReadyState
-from state_machine.states.overtake.stay import StayState
-from state_machine.states.overtake.switch_lane import SwitchLaneState
-from state_machine.states.overtake.switch_lane_back import SwitchLaneBackState
+from state_machine.states.intersection.give_way import GiveWayState
+from state_machine.states.intersection.ready import ReadyState
+from state_machine.states.intersection.stop import StopState
+from state_machine.states.intersection.wait import WaitState
 
 
-class OvertakingStateMachine(StateWrappedStateMachine):
-    """Overtaking state class."""
+class IntersectionStateMachine(StateWrappedStateMachine):
+    """Intersection state class."""
 
-    NAME = "overtaking"
+    NAME = "intersection"
 
     def __init__(self, debug: bool = False):
-        """Initializes the OvertakingState."""
+        """Initializes the IntersectionStateMachine."""
         self.TRANSITIONS = {
             "loop": self.NAME,
             "done": DrivingState.NAME,
@@ -26,9 +26,9 @@ class OvertakingStateMachine(StateWrappedStateMachine):
         # Internal states
         state_classes = [
             ReadyState,
-            SwitchLaneState,
-            StayState,
-            SwitchLaneBackState,
+            StopState,
+            GiveWayState,
+            WaitState,
         ]
 
         super().__init__(state_classes, debug)
@@ -38,5 +38,5 @@ class OvertakingStateMachine(StateWrappedStateMachine):
         if self._first_call:
             blackboard["start_location"] = copy.copy(blackboard.car_lane)
         return super().local_execute(
-            blackboard, timeout_time=CONSTANTS.OVERTAKE.TIMEOUT
+            blackboard, timeout_time=CONSTANTS.INTERSECTION.TIMEOUT
         )

@@ -1,10 +1,11 @@
 import os
 
 from ament_index_python import get_package_share_directory
+from launch_ros.actions import Node
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
 
 
 def generate_launch_description():
@@ -14,6 +15,7 @@ def generate_launch_description():
     Returns:
         LaunchDescription -- The launch description.
     """
+    python_executable = os.getenv("PYTHON_EXECUTABLE", "/usr/bin/python3")
     debug = LaunchConfiguration("debug")
     params_file = LaunchConfiguration("params_file")
 
@@ -40,6 +42,7 @@ def generate_launch_description():
                     {"debug": debug},
                     params_file,
                 ],
+                prefix=[python_executable],
             ),
         ]
     )

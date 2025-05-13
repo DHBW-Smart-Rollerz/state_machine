@@ -1,3 +1,7 @@
+import threading
+import time
+
+import yasmin
 from rclpy.parameter import Parameter
 from smarty_utils.enums import Nodes
 
@@ -17,6 +21,8 @@ class GenericStateParameter:
         self.type_ = type_
         self._value = value
 
+        self.notify()
+
     @property
     def value(self):
         """Get the value of the parameter."""
@@ -27,8 +33,12 @@ class GenericStateParameter:
         """Set the value of the parameter."""
         if value is None:
             return
-        if not isinstance(value, self.type_):
-            raise TypeError(f"Value must be of type {self.type_}")
+        try:
+            if not isinstance(value, self.type_):
+                raise RuntimeError(f"Value must be of type {self.type_}")
+        except TypeError:
+            # yasmin.YASMIN_LOG_WARN(f"Type not checked.")
+            pass
         if self.value != value:
             self._value = value
             self.notify()
@@ -85,8 +95,8 @@ class CallbackStateParameter(GenericStateParameter):
             type_ -- Type of the parameter
             callback -- Callback function to be called when the parameter changes
         """
-        super().__init__(name, value, type_)
         self.callback = callback
+        super().__init__(name, value, type_)
 
     @property
     def callback(self):
@@ -115,6 +125,7 @@ class TopicStateParameter(GenericStateParameter):
         value: any,
         type_: any,
         publisher_fun: callable,
+        hz: int = 5,
     ):
         """
         Initialize the state parameter.
@@ -123,8 +134,10 @@ class TopicStateParameter(GenericStateParameter):
             name -- Name of the parameter
             value -- Value of the parameter
         """
-        super().__init__(name, value, type_)
         self.publisher_fun = publisher_fun
+        self._thread = threading.Thread(None, self.publish_thread)
+        self._hz = hz
+        super().__init__(name, value, type_)
 
     @property
     def publisher_fun(self):
@@ -138,8 +151,19 @@ class TopicStateParameter(GenericStateParameter):
 
     def notify(self) -> None:
         """Notify the subscribers about the parameter change."""
-        assert self.publisher_fun, "Publisher is not set"
-        self.publisher_fun(self.value)
+        if self._thread.is_alive():
+            return
+        self._thread.start()
+
+    def publish_thread(self):
+        """Publish the parameter in a separate thread."""
+        assert self.publisher_fun, "Publisher function is not set"
+        while self._thread.is_alive():
+            if self.publisher_fun:
+                self.publisher_fun(self.value)
+            else:
+                yasmin.YASMIN_LOG_WARN("Publisher function is not set")
+            time.sleep(1 / self._hz)
 
 
 class ParameterStateParameter(GenericStateParameter):
@@ -163,9 +187,9 @@ class ParameterStateParameter(GenericStateParameter):
             nodes -- _nodes_ to set the parameter
             client_setter_fun -- _client setter function_ to set the parameter
         """
-        super().__init__(name, value, type_)
         self.nodes = nodes
         self.client_setter_fun = client_setter_fun
+        super().__init__(name, value, type_)
 
     @property
     def nodes(self):

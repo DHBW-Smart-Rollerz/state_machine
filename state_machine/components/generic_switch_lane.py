@@ -1,9 +1,12 @@
-from smarty_utils.enums import Light, Nodes
+import time
+
+import rclpy
+import rclpy.logging
+from smarty_utils.enums import Light, Location, NodeState, Nodes
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.utils import Location
 
 
 class GenericSwitchLaneState(BaseState):
@@ -11,6 +14,7 @@ class GenericSwitchLaneState(BaseState):
 
     NAME = "switch_lane"
     STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
     )
 
@@ -24,17 +28,11 @@ class GenericSwitchLaneState(BaseState):
             "switch_lane_done": final_state,
         }
 
-        self._start_location = None
-        self._first_call = True
+        self._goal_lane = None
 
         super().__init__(debug)
 
-    def reset(self):
-        """Reset the state."""
-        self._first_call = True
-        self._start_location = None
-
-    def execute(self, blackboard: BlackBoard):
+    def local_execute(self, blackboard: BlackBoard):
         """
         Execute the state.
 
@@ -44,36 +42,34 @@ class GenericSwitchLaneState(BaseState):
         Returns:
             str -- The next state to transition to
         """
-        if self._first_call:
-            goal_lane = Location.opposite(blackboard.car_lane)
-            self.STATE_DESCRIPTION = BlackBoard(
-                max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
-                goal_lane=goal_lane,
-                light_configuration=(
-                    Light.BLINK_LEFT
-                    if goal_lane == Location.LEFT
-                    else Light.BLINK_RIGHT
-                ),
-                node_states={
-                    Nodes.OBJECT_DETECTION: Nodes.ACTIVE,
-                    Nodes.LANE_DETECTION: Nodes.ACTIVE,
-                    Nodes.PATH_PLANNING: Nodes.ACTIVE,
-                    Nodes.CONTROL: Nodes.ACTIVE,
-                    Nodes.STATE_ESTIMATION: Nodes.ACTIVE,
-                },
-            )
-            self._start_location: Location = blackboard.car_lane
-            self._first_call = False
-        super().execute(blackboard)
+        self._goal_lane = Location.opposite(blackboard.car_lane)
+        self.STATE_DESCRIPTION = StateDescription(
+            max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
+            goal_lane=self._goal_lane,
+            light_configuration=(
+                Light.BLINK_LEFT if self._goal_lane == Location.LEFT_LANE else Light.BLINK_RIGHT
+            ),
+            node_states={
+                Nodes.OBJECT_DETECTION: NodeState.ACTIVE,
+                Nodes.LANE_DETECTION: NodeState.ACTIVE,
+                Nodes.PATH_PLANNING: NodeState.ACTIVE,
+                Nodes.CONTROL: NodeState.ACTIVE,
+                Nodes.STATE_ESTIMATION: NodeState.ACTIVE,
+            },
+        )
+        super().local_execute(blackboard)
 
         # Check if the lane switch is done
-        if self.check_lane_switch_done():
-            self.reset()
-            return "switch_lane_done"
-
-        return "loop"
+        while not self.check_lane_switch_done():
+            # Check if the lane switch is done
+            self.log_state("Switch Lane: Waiting for lane switch to be done")
+            time.sleep(0.0001)
+        return "switch_lane_done"
 
     def check_lane_switch_done(self):
         """Check if the lane switch is done."""
-        if self.car_location != self._start_location:
+        rclpy.logging.get_logger("state_machine").info(
+            f"Switch Lane: Lane switch done. Start location: {self._goal_lane}, Current location: {self.blackboard.car_lane}"
+        )
+        if self.blackboard.car_lane == self._goal_lane:
             return True

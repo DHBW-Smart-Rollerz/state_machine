@@ -39,7 +39,11 @@ class StateWrappedStateMachine(BaseState):
         self._timer = None
         self._outcome = None
 
-    def execute(self, blackboard: BlackBoard, timeout_time: float = -1.0) -> str:
+    def local_execute(
+        self,
+        blackboard: BlackBoard,
+        timeout_time: float = -1.0,
+    ) -> str:
         """
         Execute the state and start the state machine.
 
@@ -50,7 +54,7 @@ class StateWrappedStateMachine(BaseState):
         Returns:
             str -- Next state (loop) per default
         """
-        super().execute(blackboard, update_black_board=False)
+        super().local_execute(blackboard, update_black_board=False)
         if self._first_call:
             self.reset()
             if timeout_time > 0:
@@ -58,11 +62,9 @@ class StateWrappedStateMachine(BaseState):
             self.blackboard = blackboard
             self._first_call = False
             self._start_sm()
-            return "loop"
 
-        if self._run_sm:
+        while self._run_sm:
             time.sleep(0.0001)
-            return "loop"
 
         self._first_call = True
         return self._outcome
@@ -97,6 +99,7 @@ class StateWrappedStateMachine(BaseState):
 
         self._run_sm = True
         self._outcome = self.sm(self.blackboard)
+        yasmin.YASMIN_LOG_WARN("Internal State Machine finished!")
         self._run_sm = False
 
     def _sm_watchdog_fun(self):
@@ -132,13 +135,15 @@ class StateWrappedStateMachine(BaseState):
 
     def cancel_state(self):
         """Cancel the state machine."""
+        self._outcome = "canceled"
         self.sm.cancel_state()
         self.stop()
-        self._outcome = "canceled"
         return super().cancel_state()
 
     def start_timeout_timer(self, timeout: float):
         """Set the timeout for the state machine."""
         # Start timer to cancel state machine after timeout in seconds
-        self._timer = threading.Timer(timeout, self.cancel_state())
-        self._timer.start()
+        if timeout > 0:
+            self._timer = threading.Timer(timeout, self.cancel_state())
+            self._timer.start()
+            yasmin.YASMIN_LOG_WARN("Canceld with timer.")

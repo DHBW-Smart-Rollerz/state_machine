@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 State Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+    <header>
+        <h1>ROS2 State Monitor</h1>
+    </header>
+    <main>
+        <section id="state">
+            <h2>Aktueller Zustand</h2>
+            <div id="current-state">Lade...</div>
+        </section>
+        <section id="parameters">
+            <h2>Parameter</h2>
+            <table id="parameter-table">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Wert</th>
+                    </tr>
+                </thead>
+                <tbody id="parameter-body">
+                    <tr>
+                        <td>Max Geschwindigkeit</td>
+                        <td id="max-speed">Lade...</td>
+                    </tr>
+                    <tr>
+                        <td>Zielspur</td>
+                        <td id="goal-lane">Lade...</td>
+                    </tr>
+                    <tr>
+                        <td>Fahrspur</td>
+                        <td id="car-lane">Lade...</td>
+                    </tr>
+                    <tr>
+                        <td>Lichtkonfiguration</td>
+                        <td id="light-configuration">Lade...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Detected Objects</h2>
+            <table id="objects-table">
+                <thead>
+                    <tr>
+                        <th>Object</th>
+                        <th>Location</th>
+                        <th>Distance</th>
+                    </tr>
+                </thead>
+                <tbody id="objects-list">
+                    <tr>
+                        <td colspan="3">No objects detected</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>Detected Signs</h2>
+            <table id="signs-table">
+                <thead>
+                    <tr>
+                        <th>Sign</th>
+                        <th>Location</th>
+                        <th>Distance</th>
+                    </tr>
+                </thead>
+                <tbody id="signs-list">
+                    <tr>
+                        <td colspan="3">No signs detected</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+    <script>
+        // EventSource for SSE updates
+        const eventSource = new EventSource('/stream');
+        eventSource.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            updateUIFromData(data);
+        };
+
+        // WebSocket connection - update to use the correct port (6789)
+        const socket = new WebSocket('ws://' + window.location.hostname + ':6789');
+
+        // On connection open
+        socket.onopen = function (e) {
+            console.log('[WebSocket] Connection established');
+        };
+
+        // On message received from WebSocket
+        socket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            console.log('[WebSocket] Data received:', data);
+            updateUIFromData(data);
+        };
+
+        // On connection error
+        socket.onerror = function (error) {
+            console.error('[WebSocket] Error:', error);
+        };
+
+        // On connection close
+        socket.onclose = function (event) {
+            if (event.wasClean) {
+                console.log(`[WebSocket] Connection closed cleanly, code=${event.code}, reason=${event.reason}`);
+            } else {
+                console.error('[WebSocket] Connection died');
+                // Try to reconnect after a delay
+                setTimeout(() => {
+                    console.log('[WebSocket] Attempting to reconnect...');
+                    socket = new WebSocket('ws://' + window.location.hostname + ':6789');
+                }, 5000);
+            }
+        };
+
+        // Add this inside your updateUIFromData function
+        function highlight(element) {
+            element.classList.add('highlight');
+            setTimeout(() => {
+                element.classList.remove('highlight');
+            }, 2000);
+        }
+
+
+        // Shared function to update UI from either source
+        function updateUIFromData(data) {
+            // Update elements based on received data
+            document.getElementById('max-speed').innerText = data.max_speed;
+            document.getElementById('goal-lane').innerText = data.goal_lane;
+            document.getElementById('light-configuration').innerText = data.light_configuration;
+
+            // Update additional elements if they exist and have corresponding data
+            if (document.getElementById('current-state') && data.current_state) {
+                document.getElementById('current-state').innerText = data.current_state;
+            }
+            if (document.getElementById('car-lane') && data.car_lane) {
+                document.getElementById('car-lane').innerText = data.car_lane;
+            }
+
+            // Update objects and signs
+            // Update objects table
+            const objectsList = document.getElementById('objects-list');
+            const currentObjectsHTML = objectsList.innerHTML;
+            let newObjectsHTML = '';
+            if (data.objects && data.objects.length > 0) {
+                data.objects.forEach(obj => {
+                    newObjectsHTML += `
+                        <tr>
+                            <td>${obj.name}</td>
+                            <td>${obj.location}</td>
+                            <td>${obj.distance}</td>
+                        </tr>
+                    `;
+                });
+            }
+            if (currentObjectsHTML !== newObjectsHTML) {
+                objectsList.innerHTML = newObjectsHTML;
+            }
+
+            // Update signs table
+            const signsList = document.getElementById('signs-list');
+            const currentSignsHTML = signsList.innerHTML;
+            let newSignsHTML = '';
+            if (data.signs && data.signs.length > 0) {
+                data.signs.forEach(sign => {
+                    newSignsHTML += `
+                        <tr>
+                            <td>${sign.name}</td>
+                            <td>${sign.location}</td>
+                            <td>${sign.distance}</td>
+                        </tr>
+                    `;
+                });
+            }
+            if (currentSignsHTML !== newSignsHTML) {
+                signsList.innerHTML = newSignsHTML;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

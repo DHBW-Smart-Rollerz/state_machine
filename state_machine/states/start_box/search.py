@@ -2,23 +2,23 @@ import copy
 import time
 
 import yasmin
-from smarty_utils.enums import Light, Nodes, NodeState
+from smarty_utils.enums import SIGNS, Light, Location, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.states.start_box.ready import ReadyState
-from state_machine.utils import Location, detectors
+from state_machine.utils import detectors
 
 
 class SearchState(BaseState):
     """Search state class."""
 
-    NAME = "search_start_box"
+    NAME = "startbox-search"
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.BRAKE,
         max_speed=0.0,
-        goal_lane=Location.RIGHT,
+        goal_lane=Location.RIGHT_LANE,
         node_states={
             Nodes.OBJECT_DETECTION: NodeState.ACTIVE,
             Nodes.LANE_DETECTION: NodeState.INACTIVE,
@@ -31,7 +31,6 @@ class SearchState(BaseState):
     def __init__(self, debug: bool = False):
         """Initializes the SearchState."""
         self.TRANSITIONS = {
-            "loop": self.NAME,
             "canceled": "canceled",
             "start_sign_detected": ReadyState.NAME,
         }
@@ -44,7 +43,7 @@ class SearchState(BaseState):
         self._first_found_time = -1
         self._counter = 0
 
-    def execute(self, blackboard: BlackBoard) -> str:
+    def local_execute(self, blackboard: BlackBoard) -> str:
         """
         Executes the SearchState.
 
@@ -54,16 +53,18 @@ class SearchState(BaseState):
         Returns:
             str -- The outcome of the state
         """
-        super().execute(blackboard)
-        if self._is_start_box_detected(blackboard):
-            return "start_sign_detected"
-        elif self._check_timeout():
-            yasmin.YASMIN_LOG_WARN(
-                f"Start Box search timeout after {time.perf_counter() - self._init_time} seconds"
-            )
-            return "canceled"
-        else:
-            return "loop"
+        super().local_execute(blackboard)
+
+        while not self._is_start_box_detected(blackboard):
+            self.log_state("Start Box: Waiting for stop sign to be detected")
+            time.sleep(0.0001)
+            if self._check_timeout():
+                yasmin.YASMIN_LOG_WARN(
+                    f"Start Box search timeout after {time.perf_counter() - self._init_time} seconds"
+                )
+                return "canceled"
+
+        return "start_sign_detected"
 
     def _check_timeout(self) -> bool:
         """
@@ -86,7 +87,7 @@ class SearchState(BaseState):
         Returns:
             bool -- True if the start box is detected for the required duration, False otherwise
         """
-        return True
+        # return True
         # Stop sign in sign list
         signs: list[dict] = copy.copy(blackboard.signs)
 
@@ -94,7 +95,7 @@ class SearchState(BaseState):
         ready_time_thresh = CONSTANTS.START_BOX.READY_TIME_THRESH
         forget_time_thresh = CONSTANTS.START_BOX.FORGET_READY_TIME_THRESH
         detected = detectors.check_dist_to_obj_sign(
-            signs, "stop", sign_dist_thresh, Location.NOT_RELEVANT
+            signs, SIGNS.STOP, sign_dist_thresh, Location.NOT_RELEVANT
         )
 
         current_time = time.perf_counter()

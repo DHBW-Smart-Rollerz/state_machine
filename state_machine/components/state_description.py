@@ -2,14 +2,13 @@ import threading
 import time
 
 import yasmin
-from smarty_utils.enums import OBJECTS, SIGNS, Light, Nodes, NodeState
+from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
 
 from state_machine.components.state_parameter import (
     ParameterStateParameter,
     StateParameter,
     TopicStateParameter,
 )
-from state_machine.utils import Location
 
 
 class StateDescription:
@@ -83,6 +82,7 @@ class BlackBoard(yasmin.Blackboard):
         self._last_timestamp = last_timestamp
         self._node_states = node_states
         self._remote_state = remote_state
+        self._current_state = "No State"
 
     def update(self, state_description: StateDescription):
         """
@@ -185,7 +185,6 @@ class BlackBoard(yasmin.Blackboard):
         """Set the lane coefficients."""
         with self.__lock:
             self._lane_coefficients.value = coefficients
-            self.check_car_lane()
 
     @property
     def last_state(self) -> str:
@@ -215,6 +214,12 @@ class BlackBoard(yasmin.Blackboard):
             self._last_timestamp.value = timestamp
 
     @property
+    def current_state(self) -> str:
+        """Get the current state."""
+        with self.__lock:
+            return self._current_state
+
+    @property
     def node_states(self) -> dict[str, NodeState]:
         """Get the node states."""
         with self.__lock:
@@ -239,11 +244,11 @@ class BlackBoard(yasmin.Blackboard):
         with self.__lock:
             self._remote_state.value = state
 
-    def check_car_lane(self) -> Location:
+    def __str__(self):
         """
-        Checks if the car is in the left or right lane.
+        String representation of the blackboard.
 
         Returns:
-            Location -- The lane where the car is located
+            str -- String representation of the blackboard
         """
-        pass  # TODO
+        return f"Blackboard(signs={self._signs})"

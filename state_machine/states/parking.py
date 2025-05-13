@@ -15,7 +15,7 @@ class ParkingState(BaseState):
         self.TRANSITIONS = {"dummy": DrivingState.NAME}  # TODO: Add transitions
         super().__init__()
 
-    def execute(self, blackboard: BlackBoard) -> str:
+    def local_execute(self, blackboard: BlackBoard) -> str:
         """
         Executes the ParkingState.
 
@@ -25,5 +25,5 @@ class ParkingState(BaseState):
         Returns:
             str -- The outcome of the state
         """
-        super().execute(blackboard)
+        super().local_execute(blackboard)
         return "dummy"
