@@ -202,6 +202,10 @@ class StateMachine(SmartyNode):
         """Parse the Float32MultiArray message."""
         assert isinstance(msg, std_msgs.msg.Float32MultiArray), "Invalid message type"
         result = [msg.data[i] for i in range(len(msg.data))]
+        # Split in groups of 6
+        result = [
+            result[i : i + 6] for i in range(0, len(result), 6)
+        ]
         if len(result) <= 0:
             return []
         if not isinstance(result[0], list):
