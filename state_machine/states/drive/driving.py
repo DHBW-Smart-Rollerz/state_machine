@@ -73,6 +73,11 @@ class DrivingState(BaseState):
         super().local_execute(blackboard)
 
         while True:
+            if self.blackboard.free_drive:
+                self.log_state("Free drive")
+                time.sleep(0.0001)
+                continue
+
             if self._is_approaching_intersection() and self._check_last_state(
                 self.TRANSITIONS["approaching_intersection"]
             ):

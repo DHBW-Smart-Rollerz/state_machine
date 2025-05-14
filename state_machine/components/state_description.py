@@ -86,6 +86,7 @@ class BlackBoard(yasmin.Blackboard):
         self._current_state = "No State"
         self._speed_limit = np.inf
         self._has_speed_limit = False
+        self._free_drive = False
 
     def update(self, state_description: StateDescription):
         """
@@ -147,6 +148,21 @@ class BlackBoard(yasmin.Blackboard):
         """Set the maximum speed."""
         with self.__lock:
             self._max_speed.value = speed
+
+    @property
+    def free_drive(self) -> bool:
+        """Get the free drive status."""
+        with self.__lock:
+            return self._free_drive
+
+    @free_drive.setter
+    def free_drive(self, free: bool):
+        """Set the free drive status."""
+        with self.__lock:
+            self._free_drive = free
+            if free:
+                self._speed_limit = np.inf
+                self._has_speed_limit = False
 
     @property
     def goal_lane(self) -> Location:
