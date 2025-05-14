@@ -5,8 +5,7 @@ from smarty_utils.enums import SIGNS, Light
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.states.intersection.give_way import GiveWayState
-from state_machine.states.intersection.stop import StopState
+from state_machine.states.intersection.approach import ApproachGiveWay, ApproachStop
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
 
@@ -22,8 +21,8 @@ class ReadyState(BaseState):
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
         self.TRANSITIONS = {
-            "start_stop": StopState.NAME,
-            "start_give_way": GiveWayState.NAME,
+            "start_stop": ApproachStop.NAME,
+            "start_give_way": ApproachGiveWay.NAME,
             "canceled": "canceled",
         }
         super().__init__(debug)

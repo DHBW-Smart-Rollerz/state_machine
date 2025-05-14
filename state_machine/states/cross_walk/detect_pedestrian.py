@@ -1,11 +1,11 @@
 import time
 
-from state_machine.states.cross_walk.wait import WaitState
 from smarty_utils.enums import OBJECTS, Light
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
+from state_machine.states.cross_walk.wait import WaitState
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
 
@@ -13,7 +13,9 @@ class DetectPedestrian(BaseState):
     """Handling crosswalk pedestrian."""
 
     NAME = "crosswalk-detect-pedestrian"
-    STATE_DESCRIPTION = StateDescription(light_configuration=Light.BRAKE, max_speed=0.0)
+    STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.BRAKE, max_speed=CONSTANTS.CROSS_WALK.DETECT_SPEED
+    )
 
     def __init__(self, debug: bool = False):
         """Initialize the DetectPedestrian."""
@@ -36,7 +38,10 @@ class DetectPedestrian(BaseState):
         super().execute(blackboard)
         start_time = blackboard.last_timestamp
 
-        while time.perf_counter() - start_time <= CONSTANTS.CROSS_WALK.NO_PEDESTRIAN_TIMEOUT:
+        while (
+            time.perf_counter() - start_time
+            <= CONSTANTS.CROSS_WALK.NO_PEDESTRIAN_TIMEOUT
+        ):
             if check_dist_to_obj_sign(
                 self.blackboard.objects,
                 [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],

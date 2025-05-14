@@ -4,8 +4,6 @@ import time
 import geometry_msgs.msg
 import numpy as np
 import rclpy
-from state_machine.utils.detectors import get_car_location
-from state_machine.utils.object_detection_interface import create_obj_sign
 import std_msgs.msg
 import yasmin
 import yasmin_viewer
@@ -29,6 +27,8 @@ from state_machine.states.no_passing_zone import NoPassingZoneState
 from state_machine.states.overtake.overtaking import OvertakingStateMachine
 from state_machine.states.parking import ParkingState
 from state_machine.states.start_box.startbox import StartBoxStateMachine
+from state_machine.utils.detectors import get_car_location
+from state_machine.utils.object_detection_interface import create_obj_sign
 from state_machine.webapp.app import create_and_run_flask_app
 
 
@@ -49,7 +49,7 @@ class StateMachine(SmartyNode):
                 "object_topic": "/object_detection/object",
                 # Publisher topics
                 "lights_topic": "/lights",
-                "speed_limit_topic": "/control/velocity/target2",
+                "speed_limit_topic": "/control/velocity/target",
                 "car_lane_topic": "/state_machine/car_lane",
                 "goal_lane_topic": "/state_machine/goal_lane",
                 "debug_state_topic": "/state_machine/debug/state",
@@ -295,14 +295,14 @@ class StateMachine(SmartyNode):
             if params[i].name.endswith("_state"):
                 params[i]._name = "state"
         client = self.node_state_clients[node]
-        
+
         self.get_logger().info(
             f"Setting parameter {params[0].name}:{params[0].value} for {node.value}"
         )
         future = client.set_parameters(params)
         future.add_done_callback(self.get_parameter_callback(node))
         return True
-        
+
     def get_parameter_callback(self, node: Nodes):
         """
         Get the callback for the parameter setter.
@@ -320,9 +320,7 @@ class StateMachine(SmartyNode):
             try:
                 response = future.result()
                 if self._debug:
-                    self.get_logger().info(
-                        f"Set parameter {response} for {node.value}"
-                    )
+                    self.get_logger().info(f"Set parameter {response} for {node.value}")
                 return response
             except Exception as e:
                 self.get_logger().error(

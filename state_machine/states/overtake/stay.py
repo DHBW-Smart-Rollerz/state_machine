@@ -46,6 +46,10 @@ class StayState(BaseState):
 
         return "overtake_done"
 
+    def clac_stay_time(self):
+        """Calculate the time to stay in the lane after overtaking."""
+        return CONSTANTS.OVERTAKE.STAY_DISTANCE / self.blackboard.max_speed
+
     def check_overtake_done(self):
         """Check if the overtaking is done."""
         object_in_range = check_dist_to_obj_sign(
@@ -58,8 +62,7 @@ class StayState(BaseState):
             self._start_delay()
             if self._delay_start_time is not None:
                 return (
-                    time.perf_counter() - self._delay_start_time
-                    > CONSTANTS.OVERTAKE.STAY_TIME
+                    time.perf_counter() - self._delay_start_time > self.clac_stay_time()
                 )
         else:
             self._delay_start_time = None

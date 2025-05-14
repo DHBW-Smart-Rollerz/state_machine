@@ -8,7 +8,8 @@ class OVERTAKE_CONSTANTS:
     TIMEOUT = 30  # s
 
     # The time in seconds to stay in the lane after overtaking
-    STAY_TIME = 5  # s
+    # STAY_TIME = 5  # s
+    STAY_DISTANCE = 1500  # mm
 
     # The maximum speed in m/s
     MAX_SPEED = 0.3  # m/s

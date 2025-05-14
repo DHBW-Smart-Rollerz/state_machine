@@ -3,7 +3,7 @@ class INTERSECTION_CONSTANTS:
 
     # The distance to the object in front of the car when intersecting
     START_DIST = 300  # mm
-    GIVE_WAY_DIST = 360 # mm
+    GIVE_WAY_DIST = 360  # mm
 
     # The time in seconds until the ready state is canceled
     READY_TIMEOUT = 10
@@ -20,3 +20,5 @@ class INTERSECTION_CONSTANTS:
 
     # Maximum speed in m/s
     MAX_SPEED = 0.1  # m/s
+    APPROACH_SPEED = 0.1  # m/s
+    APPROACH_DISTANCE = 600  # mm

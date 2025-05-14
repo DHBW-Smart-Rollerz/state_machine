@@ -4,6 +4,7 @@ from state_machine.components.state_description import BlackBoard
 from state_machine.components.state_wrapped_sm import StateWrappedStateMachine
 from state_machine.states import CONSTANTS
 from state_machine.states.drive.driving import DrivingState
+from state_machine.states.intersection.approach import ApproachGiveWay, ApproachStop
 from state_machine.states.intersection.give_way import GiveWayState
 from state_machine.states.intersection.ready import ReadyState
 from state_machine.states.intersection.stop import StopState
@@ -29,6 +30,8 @@ class IntersectionStateMachine(StateWrappedStateMachine):
             StopState,
             GiveWayState,
             WaitState,
+            ApproachStop,
+            ApproachGiveWay,
         ]
 
         super().__init__(state_classes, debug)
