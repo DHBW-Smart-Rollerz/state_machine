@@ -4,13 +4,14 @@ import time
 import geometry_msgs.msg
 import numpy as np
 import rclpy
-from state_machine.utils.detectors import get_car_location, get_object_location
+from state_machine.utils.detectors import get_car_location
+from state_machine.utils.object_detection_interface import create_obj_sign
 import std_msgs.msg
 import yasmin
 import yasmin_viewer
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
-from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
+from smarty_utils.enums import Light, Location, Nodes, NodeState
 from smarty_utils.smarty_node import SmartyNode
 
 from state_machine.components.state_description import BlackBoard
@@ -199,81 +200,14 @@ class StateMachine(SmartyNode):
     # Callbacks for the subscribers
     ##############################
 
-    def parse_float32_multiarray(self, msg: std_msgs.msg.Float32MultiArray):
-        """Parse the Float32MultiArray message."""
-        assert isinstance(msg, std_msgs.msg.Float32MultiArray), "Invalid message type"
-        result = [msg.data[i] for i in range(len(msg.data))]
-        # Split in groups of 6
-        result = [
-            result[i : i + 6] for i in range(0, len(result), 6)
-        ]
-        if len(result) <= 0:
-            return []
-        if not isinstance(result[0], list):
-            result = [result]
-        return result
-
-    def _calc_dist(self, obj_position: dict) -> float:
-        """Calculate the distance from the car to the object."""
-        assert isinstance(obj_position, dict), "Invalid object position type"
-        x = obj_position["bottom_left_x"]
-        y = obj_position["bottom_left_y"]
-        left = np.linalg.norm([x, y])
-        x = obj_position["bottom_right_x"]
-        y = obj_position["bottom_right_y"]
-        right = np.linalg.norm([x, y])
-        return min(left, right)
-
-    def _create_obj_sign(self, parsed: list, is_object: bool) -> list[dict]:
-        """
-        Create a list of objects or signs from the parsed data.
-
-        Arguments:
-            parsed -- parsed data from the Float32MultiArray message
-            is_object -- True if the data is for objects, False if for signs
-
-        Returns:
-            list of objects or signs
-        """
-        results = []
-        for obj in parsed:
-            len(obj) >= 6, "Invalid object data"
-            obj_id = obj[0]
-            obj_position = {
-                "bottom_left_x": obj[1],
-                "bottom_left_y": obj[2],
-                "bottom_right_x": obj[3],
-                "bottom_right_y": obj[4],
-            }
-            left_lane = self.blackboard.lane_coefficients.get("left", None)
-            right_lane = self.blackboard.lane_coefficients.get("right", None)
-            obj_location = get_object_location(obj_position, left_lane, right_lane)
-            obj_dist = self._calc_dist(obj_position)
-            obj_name = OBJECTS(obj_id) if is_object else SIGNS(obj_id)
-            results.append(
-                {
-                    "id": obj_id,
-                    "position": obj_position,
-                    "distance": obj_dist,
-                    "location": obj_location,
-                    "name": obj_name,
-                    "timestamp": self.get_clock().now().nanoseconds,
-                }
-            )
-        return results
-
     def object_callback(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the object detection object subscriber."""
-        # Add the object to the blackboard
-        parsed = self.parse_float32_multiarray(msg)
-        objects = self._create_obj_sign(parsed, True)
+        objects = create_obj_sign(msg, True, self)
         self.blackboard.objects = objects
 
     def sign_callback(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the object detection sign subscriber."""
-        print("Got Signs")
-        parsed = self.parse_float32_multiarray(msg)
-        signs = self._create_obj_sign(parsed, False)
+        signs = create_obj_sign(msg, False, self)
         self.blackboard.signs = signs
 
     def new_remote_state(self, msg: std_msgs.msg.UInt8):
