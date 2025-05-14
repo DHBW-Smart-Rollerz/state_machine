@@ -91,13 +91,13 @@ class BlackBoard(yasmin.Blackboard):
         Arguments:
             state_description -- State description
         """
-        if state_description.light_configuration:
+        if state_description.light_configuration is not None:
             self.light_configuration = state_description.light_configuration
-        if state_description.max_speed:
+        if state_description.max_speed is not None:
             self.max_speed = state_description.max_speed
-        if state_description.goal_lane:
+        if state_description.goal_lane is not None:
             self.goal_lane = state_description.goal_lane
-        if state_description.node_states:
+        if state_description.node_states is not None:
             for key, state in state_description.node_states.items():
                 assert key in self._node_states.keys(), f"Key {key} not in node states"
                 self._node_states[key].value = state.value

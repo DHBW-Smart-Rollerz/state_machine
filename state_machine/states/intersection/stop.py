@@ -14,7 +14,7 @@ class StopState(BaseState):
     """Handling stopping intersection."""
 
     NAME = "intersection-stop"
-    STATE_DESCRIPTION = StateDescription(light_configuration=Light.BRAKE, max_speed=0)
+    STATE_DESCRIPTION = StateDescription(light_configuration=Light.BRAKE, max_speed=0.0)
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""

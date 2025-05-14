@@ -1,5 +1,4 @@
-from flake8 import LOG
-
+from state_machine.states.cross_walk import CROSSWALK_CONSTANTS
 from state_machine.states.drive import DRIVE_CONSTANTS
 from state_machine.states.intersection import INTERSECTION_CONSTANTS
 from state_machine.states.overtake import OVERTAKE_CONSTANTS
@@ -13,6 +12,7 @@ class CONSTANTS:
     DRIVE = DRIVE_CONSTANTS
     OVERTAKE = OVERTAKE_CONSTANTS
     INTERSECTION = INTERSECTION_CONSTANTS
+    CROSS_WALK = CROSSWALK_CONSTANTS
 
     # How fast the car can go when switching lanes
     MAX_SPEED_SWITCH_LANE = 0.2  # m/s

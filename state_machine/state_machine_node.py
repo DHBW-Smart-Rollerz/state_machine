@@ -21,7 +21,7 @@ from state_machine.components.state_parameter import (
     TopicStateParameter,
 )
 from state_machine.states.barred_area import BarredAreaState
-from state_machine.states.crosswalk import CrosswalkState
+from state_machine.states.cross_walk.crosswalk import CrosswalkStateMachine
 from state_machine.states.drive.driving import DrivingState
 from state_machine.states.intersection.express_way import ExpressWayState
 from state_machine.states.intersection.intersection import IntersectionStateMachine
@@ -176,7 +176,7 @@ class StateMachine(SmartyNode):
             IntersectionStateMachine,
             ParkingState,
             OvertakingStateMachine,
-            CrosswalkState,
+            CrosswalkStateMachine,
             ExpressWayState,
             NoPassingZoneState,
             BarredAreaState,

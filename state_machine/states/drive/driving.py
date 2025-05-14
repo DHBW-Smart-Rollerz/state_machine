@@ -1,6 +1,5 @@
 import time
 
-import yasmin
 from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
@@ -30,7 +29,7 @@ class DrivingState(BaseState):
         """Initialize the DrivingState."""
         # Required (Circular Import)
         from state_machine.states.barred_area import BarredAreaState
-        from state_machine.states.crosswalk import CrosswalkState
+        from state_machine.states.cross_walk.crosswalk import CrosswalkStateMachine
         from state_machine.states.intersection.express_way import ExpressWayState
         from state_machine.states.intersection.intersection import (
             IntersectionStateMachine,
@@ -44,7 +43,7 @@ class DrivingState(BaseState):
             "approaching_intersection": IntersectionStateMachine.NAME,
             "approaching_parking_area": ParkingState.NAME,
             "approaching_barred_area": BarredAreaState.NAME,
-            "approaching_crosswalk": CrosswalkState.NAME,
+            "approaching_crosswalk": CrosswalkStateMachine.NAME,
             "approaching_express_way": ExpressWayState.NAME,
             "approaching_no_passing_zone": NoPassingZoneState.NAME,
             "canceled": "canceled",

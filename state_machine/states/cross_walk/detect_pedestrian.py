@@ -1,25 +1,25 @@
 import time
 
+from state_machine.states.cross_walk.wait import WaitState
 from smarty_utils.enums import OBJECTS, Light
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.states.intersection.wait import WaitState
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
 
-class GiveWayState(BaseState):
-    """Handling give way intersection."""
+class DetectPedestrian(BaseState):
+    """Handling crosswalk pedestrian."""
 
-    NAME = "intersection-give_way"
+    NAME = "crosswalk-detect-pedestrian"
     STATE_DESCRIPTION = StateDescription(light_configuration=Light.BRAKE, max_speed=0.0)
 
     def __init__(self, debug: bool = False):
-        """Initialize the ReadyState."""
+        """Initialize the DetectPedestrian."""
         self.TRANSITIONS = {
             "done": "done",
-            "wait_car": WaitState.NAME,
+            "wait_pedestrian": WaitState.NAME,
         }
         super().__init__(debug)
 
@@ -36,17 +36,17 @@ class GiveWayState(BaseState):
         super().execute(blackboard)
         start_time = blackboard.last_timestamp
 
-        while time.perf_counter() - start_time <= CONSTANTS.INTERSECTION.GIVE_NO_CAR_TIMEOUT:
+        while time.perf_counter() - start_time <= CONSTANTS.CROSS_WALK.NO_PEDESTRIAN_TIMEOUT:
             if check_dist_to_obj_sign(
                 self.blackboard.objects,
                 [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
-                CONSTANTS.INTERSECTION.VEHICLE_DIST,
+                CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
             ):
-                return "wait_car"
+                return "wait_pedestrian"
 
             time.sleep(0.0001)
 
-            self.log_state("Intersection: Searching for vehicle")
+            self.log_state("Cross Walk: Searching for pedestrian")
 
-        self.log_state("Intersection: No vehicle detected, continuing")
+        self.log_state("Cross Walk: No pedestrian detected, continuing")
         return "done"

@@ -39,6 +39,9 @@ class GenericStateParameter:
         except TypeError:
             # yasmin.YASMIN_LOG_WARN(f"Type not checked.")
             pass
+        except RuntimeError as e:
+            value = self.type_(value)
+            yasmin.YASMIN_LOG_WARN(f"Type not checked: {e}")
         if self.value != value:
             self._value = value
             self.notify()
