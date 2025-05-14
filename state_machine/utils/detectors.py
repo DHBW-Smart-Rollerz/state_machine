@@ -71,16 +71,15 @@ def _get_position(left_boarder: float, center_boarder: float, right_boarder: flo
         Location -- location of the obj
     """
     # 1. Case is in the right lane
-    if left_boarder > ly and center_boarder > ly and right_boarder < ly:
-        return Location.RIGHT_LANE
-    # 2. Case is in the left lane
-    elif left_boarder > ry and center_boarder < ry and right_boarder < ry:
-        return Location.LEFT_LANE
-    # 3. Case is left of the left lane
-    elif left_boarder < ry:
+    if left_boarder > ly and right_boarder < ry:
+        if center_boarder < (ly + ry) / 2:
+            return Location.LEFT_LANE
+        else:
+            return Location.RIGHT_LANE
+    elif left_boarder < ly:
         return Location.LEFT
     # 4. Case is right of the right lane
-    elif right_boarder > ly:
+    elif right_boarder > ry:
         return Location.RIGHT
     # 5. We don't know where the is
     return Location.UNKNOWN

@@ -15,5 +15,5 @@ class CONSTANTS:
     INTERSECTION = INTERSECTION_CONSTANTS
 
     # How fast the car can go when switching lanes
-    MAX_SPEED_SWITCH_LANE = 0.8  # m/s
+    MAX_SPEED_SWITCH_LANE = 0.2  # m/s
     LOG_TIME = 1  # s

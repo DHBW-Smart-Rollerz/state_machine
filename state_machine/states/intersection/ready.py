@@ -52,7 +52,7 @@ class ReadyState(BaseState):
             if check_dist_to_obj_sign(
                 self.blackboard.signs,
                 [SIGNS.GIVE_WAY, SIGNS.PRIORITY_ONCOMING_TRAFFIC],
-                CONSTANTS.INTERSECTION.START_DIST,
+                CONSTANTS.INTERSECTION.GIVE_WAY_DIST,
             ):
                 return "start_give_way"
 

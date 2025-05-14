@@ -11,4 +11,4 @@ class OVERTAKE_CONSTANTS:
     STAY_TIME = 5  # s
 
     # The maximum speed in m/s
-    MAX_SPEED = 0.8  # m/s
+    MAX_SPEED = 0.3  # m/s
