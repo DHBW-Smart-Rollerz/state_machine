@@ -1,6 +1,7 @@
 import threading
 import time
 
+import numpy as np
 import yasmin
 from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
 
@@ -83,6 +84,8 @@ class BlackBoard(yasmin.Blackboard):
         self._node_states = node_states
         self._remote_state = remote_state
         self._current_state = "No State"
+        self._speed_limit = np.inf
+        self._has_speed_limit = False
 
     def update(self, state_description: StateDescription):
         """
@@ -102,6 +105,12 @@ class BlackBoard(yasmin.Blackboard):
                 assert key in self._node_states.keys(), f"Key {key} not in node states"
                 self._node_states[key].value = state.value
 
+    def reset_speed_limit(self):
+        """Reset the speed limit."""
+        with self.__lock:
+            self._has_speed_limit = False
+            self._speed_limit = np.inf
+
     @property
     def light_configuration(self) -> Light:
         """Get the light configuration."""
@@ -118,7 +127,20 @@ class BlackBoard(yasmin.Blackboard):
     def max_speed(self) -> float:
         """Get the maximum speed."""
         with self.__lock:
-            return self._max_speed.value
+            return min(self._max_speed.value, self._speed_limit)
+
+    @property
+    def speed_limit(self) -> float:
+        """Get the speed limit."""
+        with self.__lock:
+            return self._speed_limit
+
+    @speed_limit.setter
+    def speed_limit(self, speed: float):
+        """Set the speed limit."""
+        with self.__lock:
+            self._has_speed_limit = True
+            self._speed_limit = speed
 
     @max_speed.setter
     def max_speed(self, speed: float):

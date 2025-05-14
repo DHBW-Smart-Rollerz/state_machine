@@ -9,7 +9,7 @@ import yasmin
 import yasmin_viewer
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
-from smarty_utils.enums import Light, Location, Nodes, NodeState
+from smarty_utils.enums import SIGNS, Light, Location, Nodes, NodeState
 from smarty_utils.smarty_node import SmartyNode
 
 from state_machine.components.state_description import BlackBoard
@@ -18,6 +18,7 @@ from state_machine.components.state_parameter import (
     StateParameter,
     TopicStateParameter,
 )
+from state_machine.states import CONSTANTS
 from state_machine.states.barred_area import BarredAreaState
 from state_machine.states.cross_walk.crosswalk import CrosswalkStateMachine
 from state_machine.states.drive.driving import DrivingState
@@ -27,7 +28,7 @@ from state_machine.states.no_passing_zone import NoPassingZoneState
 from state_machine.states.overtake.overtaking import OvertakingStateMachine
 from state_machine.states.parking import ParkingState
 from state_machine.states.start_box.startbox import StartBoxStateMachine
-from state_machine.utils.detectors import get_car_location
+from state_machine.utils.detectors import check_dist_to_obj_sign, get_car_location
 from state_machine.utils.object_detection_interface import create_obj_sign
 from state_machine.webapp.app import create_and_run_flask_app
 
@@ -100,9 +101,15 @@ class StateMachine(SmartyNode):
         self.init_state_machine()
 
         # Execute the state machine
+        self.speed_limit_thread = threading.Thread(
+            target=self.speed_limit_fun, args=(self.blackboard,)
+        )
         self.state_machine_thread = threading.Thread(
             target=lambda x: self.sm(x), args=(self.blackboard,)
         )
+        self.speed_limit_thread.daemon = True
+        self.state_machine_thread.daemon = True
+        self.speed_limit_thread.start()
         self.state_machine_thread.start()
 
         if self._debug:
@@ -273,6 +280,54 @@ class StateMachine(SmartyNode):
         msg.data = f"{state}"
         self.debug_state_topic.publish(msg)
         return True
+
+    #################################
+    # Speed limit thread
+    #################################
+
+    def speed_limit_fun(self, blackboard: BlackBoard):
+        """
+        Speed limit thread.
+
+        Arguments:
+            blackboard -- The blackboard containing the state information
+        """
+        while rclpy.ok():
+            time.sleep(0.001)
+            if not blackboard._has_speed_limit and self._check_speed_limit(
+                blackboard, lifted=False
+            ):
+                blackboard.speed_limit = CONSTANTS.SPEED_LIMIT_30
+            elif blackboard._has_speed_limit and not self._check_speed_limit(
+                blackboard, lifted=True
+            ):
+                blackboard.reset_speed_limit()
+
+    def _check_speed_limit(self, blackboard: BlackBoard, lifted: bool) -> bool:
+        """
+        Check if the speed limit is exceeded.
+
+        Arguments:
+            blackboard -- The blackboard containing the state information
+            lifted -- True if the speed limit is lifted, False otherwise
+
+        Returns:
+            bool -- True if the speed limit is exceeded, False otherwise
+        """
+        if lifted:
+            return check_dist_to_obj_sign(
+                blackboard.signs,
+                [SIGNS.SPEED_LIMIT_30_LIFTED],
+                CONSTANTS.SPEED_LIMIT_THRESHOLD_30,
+                location=Location.NOT_RELEVANT,
+            )
+        else:
+            return check_dist_to_obj_sign(
+                blackboard.signs,
+                [SIGNS.SPEED_LIMIT_30],
+                CONSTANTS.SPEED_LIMIT_THRESHOLD_30,
+                location=Location.NOT_RELEVANT,
+            )
 
     ################################
     # Parameter client

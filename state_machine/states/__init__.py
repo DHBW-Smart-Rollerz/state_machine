@@ -17,3 +17,5 @@ class CONSTANTS:
     # How fast the car can go when switching lanes
     MAX_SPEED_SWITCH_LANE = 0.2  # m/s
     LOG_TIME = 1  # s
+    SPEED_LIMIT_30 = 0.83  # m/s
+    SPEED_LIMIT_THRESHOLD_30 = 500  # mm
