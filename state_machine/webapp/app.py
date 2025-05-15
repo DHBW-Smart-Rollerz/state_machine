@@ -123,6 +123,7 @@ def create_app(blackboard: BlackBoard):
             "max_speed": app.blackboard.max_speed,
             "goal_lane": str(app.blackboard.goal_lane),
             "car_lane": str(app.blackboard.car_lane),
+            "speed_limit": str(app.blackboard.speed_limit),
             "objects": [],
             "signs": [],
         }

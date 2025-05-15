@@ -298,7 +298,7 @@ class StateMachine(SmartyNode):
                 blackboard, lifted=False
             ):
                 blackboard.speed_limit = CONSTANTS.SPEED_LIMIT_30
-            elif blackboard._has_speed_limit and not self._check_speed_limit(
+            elif blackboard._has_speed_limit and self._check_speed_limit(
                 blackboard, lifted=True
             ):
                 blackboard.reset_speed_limit()

@@ -43,6 +43,10 @@
                         <td>Lichtkonfiguration</td>
                         <td id="light-configuration">Lade...</td>
                     </tr>
+                    <tr>
+                        <td>Speed Limit</td>
+                        <td id="speed-limit">Lade...</td>
+                    </tr>
                 </tbody>
             </table>
         </section>
@@ -146,7 +150,9 @@
             if (document.getElementById('car-lane') && data.car_lane) {
                 document.getElementById('car-lane').innerText = data.car_lane;
             }
-
+            if (document.getElementById('speed-limit') && data.speed_limit) {
+                document.getElementById('speed-limit').innerText = data.speed_limit;
+            }
             // Update objects and signs
             // Update objects table
             const objectsList = document.getElementById('objects-list');
