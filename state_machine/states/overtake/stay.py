@@ -48,7 +48,7 @@ class StayState(BaseState):
 
     def clac_stay_time(self):
         """Calculate the time to stay in the lane after overtaking."""
-        return CONSTANTS.OVERTAKE.STAY_DISTANCE / self.blackboard.max_speed
+        return (CONSTANTS.OVERTAKE.STAY_DISTANCE / 1000) / self.blackboard.max_speed
 
     def check_overtake_done(self):
         """Check if the overtaking is done."""

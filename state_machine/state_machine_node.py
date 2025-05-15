@@ -19,7 +19,7 @@ from state_machine.components.state_parameter import (
     TopicStateParameter,
 )
 from state_machine.states import CONSTANTS
-from state_machine.states.barred_area import BarredAreaState
+from state_machine.states.barred_area.barred_area import BarredAreaState
 from state_machine.states.cross_walk.crosswalk import CrosswalkStateMachine
 from state_machine.states.drive.driving import DrivingState
 from state_machine.states.intersection.express_way import ExpressWayState
@@ -50,7 +50,7 @@ class StateMachine(SmartyNode):
                 "object_topic": "/object_detection/object",
                 # Publisher topics
                 "lights_topic": "/lights",
-                "speed_limit_topic": "/control/velocity/target",
+                "speed_limit_topic": "/control/velocity/target2",
                 "car_lane_topic": "/state_machine/car_lane",
                 "goal_lane_topic": "/state_machine/goal_lane",
                 "debug_state_topic": "/state_machine/debug/state",

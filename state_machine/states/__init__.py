@@ -1,3 +1,4 @@
+from state_machine.states.barred_area import BARRED_AREA_CONSTANTS
 from state_machine.states.cross_walk import CROSSWALK_CONSTANTS
 from state_machine.states.drive import DRIVE_CONSTANTS
 from state_machine.states.intersection import INTERSECTION_CONSTANTS
@@ -13,6 +14,7 @@ class CONSTANTS:
     OVERTAKE = OVERTAKE_CONSTANTS
     INTERSECTION = INTERSECTION_CONSTANTS
     CROSS_WALK = CROSSWALK_CONSTANTS
+    BARRED_AREA = BARRED_AREA_CONSTANTS
 
     # How fast the car can go when switching lanes
     MAX_SPEED_SWITCH_LANE = 0.2  # m/s

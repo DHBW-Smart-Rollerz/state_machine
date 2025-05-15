@@ -28,7 +28,7 @@ class DrivingState(BaseState):
     def __init__(self, debug: bool = False):
         """Initialize the DrivingState."""
         # Required (Circular Import)
-        from state_machine.states.barred_area import BarredAreaState
+        from state_machine.states.barred_area.barred_area import BarredAreaState
         from state_machine.states.cross_walk.crosswalk import CrosswalkStateMachine
         from state_machine.states.intersection.express_way import ExpressWayState
         from state_machine.states.intersection.intersection import (
@@ -133,7 +133,7 @@ class DrivingState(BaseState):
             location=self.blackboard.car_lane,
         ) and not check_dist_to_obj_sign(
             self.blackboard.signs,
-            [SIGNS.STOP, SIGNS.GIVE_WAY, SIGNS.PRIORITY_ONCOMING_TRAFFIC],
+            [SIGNS.STOP, SIGNS.GIVE_WAY],
             CONSTANTS.DRIVE.INTERSECTION_THRESHOLD,
             location=Location.NOT_RELEVANT,
         )
@@ -143,7 +143,7 @@ class DrivingState(BaseState):
     ) -> bool:
         return check_dist_to_obj_sign(
             self.blackboard.signs,
-            [SIGNS.STOP, SIGNS.GIVE_WAY, SIGNS.PRIORITY_ONCOMING_TRAFFIC],
+            [SIGNS.STOP, SIGNS.GIVE_WAY],
             CONSTANTS.DRIVE.INTERSECTION_THRESHOLD,
             location=Location.NOT_RELEVANT,
         )
@@ -157,8 +157,12 @@ class DrivingState(BaseState):
         )
 
     def _is_approaching_barred_area(self) -> bool:
-        # TODO: Object not implemented yet
-        pass
+        return check_dist_to_obj_sign(
+            self.blackboard.signs,
+            [SIGNS.PRIORITY_ONCOMING_TRAFFIC],
+            CONSTANTS.DRIVE.BARRED_AREA_THRESHOLD,
+            location=Location.NOT_RELEVANT,
+        )
 
     def _is_approaching_crosswalk(self) -> bool:
         return check_dist_to_obj_sign(

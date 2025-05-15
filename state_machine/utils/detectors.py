@@ -1,5 +1,6 @@
 import numpy as np
 from smarty_utils.enums import OBJECTS, SIGNS, Location
+
 from state_machine.utils import RULE_CONSTANTS
 
 
@@ -32,12 +33,39 @@ def check_dist_to_obj_sign(
                 return True
     return False
 
+
+def dist_to_obj_sign(
+    objects: list,
+    obj_types: OBJECTS | list[OBJECTS],
+    location: Location = Location.NOT_RELEVANT,
+) -> float:
+    """
+    Get the distance to the closest object of a specific type.
+
+    Arguments:
+        objects -- list of detected objects or signs
+        obj_types -- type of object or list of types to check
+
+    Returns:
+        float -- distance to the closest object of the specified type
+    """
+    if isinstance(obj_types, OBJECTS) or isinstance(obj_types, SIGNS):
+        obj_types = [obj_types]
+    closest_dist = np.inf
+    for obj in objects:
+        if obj["name"] in obj_types:
+            if obj["distance"] < closest_dist:
+                if location == Location.NOT_RELEVANT or obj["location"] == location:
+                    closest_dist = obj["distance"]
+    return closest_dist
+
+
 def get_boarders(
     left_lane: any, right_lane: any, x: float = 0.0
 ) -> tuple[float, float, float]:
     """
     Get the left and right lane boarders.
-    
+
     Arguments:
         left_lane -- tuple with left lane information (parabola coefficients)
         right_lane -- tuple with right lane information (parabola coefficients)
@@ -48,7 +76,7 @@ def get_boarders(
     """
     if left_lane is None or right_lane is None:
         return 0.0, 0.0, 0.0
-    
+
     left = left_lane(x)
     right = right_lane(x)
 
@@ -58,10 +86,17 @@ def get_boarders(
 
     return left_boarder, center_boarder, right_boarder
 
-def _get_position(left_boarder: float, center_boarder: float, right_boarder: float, ly: float = 0.0, ry: float = 0.0) -> Location:
+
+def _get_position(
+    left_boarder: float,
+    center_boarder: float,
+    right_boarder: float,
+    ly: float = 0.0,
+    ry: float = 0.0,
+) -> Location:
     """
     Get the position of the car based on the lane boarders.
-    
+
     Arguments:
         left_boarder -- left lane boarder
         center_boarder -- center lane boarder
@@ -84,11 +119,12 @@ def _get_position(left_boarder: float, center_boarder: float, right_boarder: flo
     # 5. We don't know where the is
     return Location.UNKNOWN
 
+
 def get_car_location(left_lane: any, right_lane: any) -> Location:
     """
     Get the location of the car based on the lane information.
     Car center is fixed at (0,0).
-    
+
     Arguments:
         left_lane -- tuple with left lane information (parabola coefficients)
         right_lane -- tuple with right lane information (parabola coefficients)
@@ -98,10 +134,13 @@ def get_car_location(left_lane: any, right_lane: any) -> Location:
     """
     if left_lane is None or right_lane is None:
         return Location.UNKNOWN
-    
-    left_boarder, center_boarder, right_boarder = get_boarders(left_lane, right_lane, 0.0)
+
+    left_boarder, center_boarder, right_boarder = get_boarders(
+        left_lane, right_lane, 0.0
+    )
 
     return _get_position(left_boarder, center_boarder, right_boarder)
+
 
 def get_object_location(obj_position: dict, left_line: any, right_line: any) -> tuple:
     """Get the location of the object."""

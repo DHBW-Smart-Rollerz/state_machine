@@ -5,24 +5,23 @@ from smarty_utils.enums import SIGNS, Light
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.states.intersection.approach import ApproachGiveWay, ApproachStop
+from state_machine.states.barred_area.approach import ApproachBarredArea
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
 
 class ReadyState(BaseState):
-    """Ready for starting the overtaking."""
+    """Ready for starting the barred area."""
 
-    NAME = "intersection-ready"
+    NAME = "barred-area-ready"
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.NORMAL,
-        max_speed=CONSTANTS.INTERSECTION.MAX_SPEED,
+        max_speed=CONSTANTS.BARRED_AREA.MAX_SPEED,
     )
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
         self.TRANSITIONS = {
-            "start_stop": ApproachStop.NAME,
-            "start_give_way": ApproachGiveWay.NAME,
+            "barred_area": ApproachBarredArea.NAME,
             "canceled": "canceled",
         }
         super().__init__(debug)
@@ -40,22 +39,15 @@ class ReadyState(BaseState):
         super().execute(blackboard)
         start = time.time()
 
-        while time.time() - start < CONSTANTS.INTERSECTION.READY_TIMEOUT:
+        while time.time() - start < CONSTANTS.BARRED_AREA.READY_TIMEOUT:
             if check_dist_to_obj_sign(
                 self.blackboard.signs,
-                [SIGNS.STOP],
-                CONSTANTS.INTERSECTION.START_DIST,
+                [SIGNS.PRIORITY_ONCOMING_TRAFFIC],
+                CONSTANTS.BARRED_AREA.START_DIST,
             ):
-                return "start_stop"
+                return "barred_area"
 
-            if check_dist_to_obj_sign(
-                self.blackboard.signs,
-                [SIGNS.GIVE_WAY],
-                CONSTANTS.INTERSECTION.GIVE_WAY_DIST,
-            ):
-                return "start_give_way"
-
-            self.log_state("Intersection: Searching for sign")
+            self.log_state("Barred Area: Searching for sign")
 
             time.sleep(0.0001)
 
