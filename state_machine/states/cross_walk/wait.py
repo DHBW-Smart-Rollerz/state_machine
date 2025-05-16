@@ -13,7 +13,7 @@ class WaitState(BaseState):
 
     NAME = "crosswalk-wait"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE,
+        light_configuration=Light.BRAKE_NORMAL,
         max_speed=0.0,
     )
 
@@ -61,21 +61,25 @@ class WaitState(BaseState):
         Returns:
             bool -- True if the pedestrian has crossed the Crosswalk, False otherwise
         """
-        return check_dist_to_obj_sign(
-            self.blackboard.objects,
-            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
-            CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
-            Location.opposite(start_location, True),
-        ) or check_dist_to_obj_sign(
-            self.blackboard.objects,
-            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
-            CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
-            Location.UNKNOWN,
-        ) or not check_dist_to_obj_sign(
-            self.blackboard.objects,
-            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
-            CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
-            Location.NOT_RELEVANT
+        return (
+            check_dist_to_obj_sign(
+                self.blackboard.objects,
+                [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
+                CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
+                Location.opposite(start_location, True),
+            )
+            or check_dist_to_obj_sign(
+                self.blackboard.objects,
+                [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
+                CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
+                Location.UNKNOWN,
+            )
+            or not check_dist_to_obj_sign(
+                self.blackboard.objects,
+                [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
+                CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
+                Location.NOT_RELEVANT,
+            )
         )
 
     def get_start_location(self):

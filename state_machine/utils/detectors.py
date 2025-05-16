@@ -77,8 +77,8 @@ def get_boarders(
     if left_lane is None or right_lane is None:
         return 0.0, 0.0, 0.0
 
-    left = left_lane(x)
-    right = right_lane(x)
+    right = left_lane(x)
+    left = right_lane(x)
 
     left_boarder = left + 0.5 * RULE_CONSTANTS.lane_width
     right_boarder = right - 0.5 * RULE_CONSTANTS.lane_width

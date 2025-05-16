@@ -15,7 +15,7 @@ class DetectObstacleState(BaseState):
 
     NAME = "barred-area-detect-pedestrian"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BLINK_LEFT,
+        light_configuration=Light.BLINK_LEFT_NORMAL,
         max_speed=CONSTANTS.BARRED_AREA.DETECT_SPEED,
     )
 

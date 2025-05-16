@@ -14,7 +14,8 @@ class DetectPedestrian(BaseState):
 
     NAME = "crosswalk-detect-pedestrian"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE, max_speed=CONSTANTS.CROSS_WALK.DETECT_SPEED
+        light_configuration=Light.BRAKE_NORMAL,
+        max_speed=CONSTANTS.CROSS_WALK.DETECT_SPEED,
     )
 
     def __init__(self, debug: bool = False):

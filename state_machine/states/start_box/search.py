@@ -16,7 +16,7 @@ class SearchState(BaseState):
 
     NAME = "startbox-search"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE,
+        light_configuration=Light.BRAKE_NORMAL,
         max_speed=0.0,
         goal_lane=Location.RIGHT_LANE,
         node_states={

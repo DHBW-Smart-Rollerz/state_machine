@@ -1,4 +1,5 @@
 class RULE_CONSTANTS:
-    """Rule based constants"""
+    """Rule based constants."""
 
-    lane_width = 450 # mm
+    # Tsadfa
+    lane_width = 200  # mm

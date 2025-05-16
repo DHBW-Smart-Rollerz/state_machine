@@ -11,7 +11,8 @@ class ApproachCrosswalk(Approach):
 
     NAME = "crosswalk-approach"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE, max_speed=CONSTANTS.CROSS_WALK.APPROACH_SPEED
+        light_configuration=Light.BRAKE_NORMAL,
+        max_speed=CONSTANTS.CROSS_WALK.APPROACH_SPEED,
     )
     APPROACH_DISTANCE = CONSTANTS.CROSS_WALK.APPROACH_DISTANCE
 

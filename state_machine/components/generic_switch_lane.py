@@ -2,7 +2,7 @@ import time
 
 import rclpy
 import rclpy.logging
-from smarty_utils.enums import Light, Location, NodeState, Nodes
+from smarty_utils.enums import Light, Location, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
@@ -47,7 +47,9 @@ class GenericSwitchLaneState(BaseState):
             max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
             goal_lane=self._goal_lane,
             light_configuration=(
-                Light.BLINK_LEFT if self._goal_lane == Location.LEFT_LANE else Light.BLINK_RIGHT
+                Light.BLINK_LEFT_NORMAL
+                if self._goal_lane == Location.LEFT_LANE
+                else Light.BLINK_RIGHT_NORMAL
             ),
             node_states={
                 Nodes.OBJECT_DETECTION: NodeState.ACTIVE,

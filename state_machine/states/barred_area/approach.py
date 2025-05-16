@@ -11,7 +11,7 @@ class ApproachBarredArea(Approach):
 
     NAME = "barred-area-approach"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BLINK_LEFT,
+        light_configuration=Light.BLINK_LEFT_NORMAL,
         max_speed=CONSTANTS.BARRED_AREA.APPROACH_SPEED,
     )
     APPROACH_DISTANCE = CONSTANTS.BARRED_AREA.APPROACH_DISTANCE

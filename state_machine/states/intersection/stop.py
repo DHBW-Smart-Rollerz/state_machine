@@ -14,7 +14,9 @@ class StopState(BaseState):
     """Handling stopping intersection."""
 
     NAME = "intersection-stop"
-    STATE_DESCRIPTION = StateDescription(light_configuration=Light.BRAKE, max_speed=0.0)
+    STATE_DESCRIPTION = StateDescription(
+        light_configuration=Light.BRAKE_NORMAL, max_speed=0.0
+    )
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
@@ -37,7 +39,10 @@ class StopState(BaseState):
         super().execute(blackboard)
         start_time = blackboard.last_timestamp
 
-        while time.perf_counter() - start_time <= CONSTANTS.INTERSECTION.STOP_NO_CAR_TIMEOUT:
+        while (
+            time.perf_counter() - start_time
+            <= CONSTANTS.INTERSECTION.STOP_NO_CAR_TIMEOUT
+        ):
             if check_dist_to_obj_sign(
                 self.blackboard.objects,
                 [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
