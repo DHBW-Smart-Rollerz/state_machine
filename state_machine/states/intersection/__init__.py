@@ -10,6 +10,7 @@ class INTERSECTION_CONSTANTS:
 
     # The time in seconds until the intersecting is canceled
     TIMEOUT = 30  # s
+    WAIT_TIMEOUT = 10  # s
 
     # The distance to the object in front of the car when intersecting
     VEHICLE_DIST = 1000  # mm
@@ -21,4 +22,4 @@ class INTERSECTION_CONSTANTS:
     # Maximum speed in m/s
     MAX_SPEED = 0.1  # m/s
     APPROACH_SPEED = 0.1  # m/s
-    APPROACH_DISTANCE = 600  # mm
+    APPROACH_DISTANCE = 300  # mm

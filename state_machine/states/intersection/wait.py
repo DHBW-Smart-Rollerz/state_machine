@@ -38,7 +38,7 @@ class WaitState(BaseState):
         super().execute(blackboard)
 
         start_location = Location.UNKNOWN
-        while start_location == Location.UNKNOWN:
+        while start_location == Location.UNKNOWN and not self._check_timeout():
             start_location = self.get_start_location()
             time.sleep(0.0001)
             self.log_state("Intersection: Waiting for vehicle to be detected")
@@ -46,11 +46,23 @@ class WaitState(BaseState):
         self.log_state(
             f"Intersection: Vehicle detected at {start_location}; {self.check_crossed(start_location)}; {Location.opposite(start_location)}"
         )
-        while not self.check_crossed(start_location):
+        while not self.check_crossed(start_location) and not self.check_timeout():
             time.sleep(0.0001)
             self.log_state("Intersection: Waiting for vehicle to cross intersection")
 
         return "done"
+
+    def check_timeout(self):
+        """
+        Check if the timeout has been reached.
+
+        Returns:
+            bool -- True if the timeout has been reached, False otherwise
+        """
+        return (
+            time.time() - self.blackboard.last_timestamp
+            > CONSTANTS.INTERSECTION.TIMEOUT
+        )
 
     def check_crossed(self, start_location: Location):
         """

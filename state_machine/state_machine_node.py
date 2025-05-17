@@ -50,10 +50,11 @@ class StateMachine(SmartyNode):
                 "object_topic": "/object_detection/object",
                 # Publisher topics
                 "lights_topic": "/lights",
-                "speed_limit_topic": "/control/velocity/target2",
+                "speed_limit_topic": "/control/velocity/target",
                 "car_lane_topic": "/state_machine/car_lane",
                 "goal_lane_topic": "/state_machine/goal_lane",
                 "debug_state_topic": "/state_machine/debug/state",
+                "drive_mode_topic": "/remote/drive_mode",
                 # Parameters
                 "debug": debug,
             },
@@ -81,6 +82,11 @@ class StateMachine(SmartyNode):
                 "object_topic": (
                     std_msgs.msg.Float32MultiArray,
                     self.object_callback,
+                    None,
+                ),
+                "drive_mode_topic": (
+                    std_msgs.msg.UInt8,
+                    self.new_remote_state,
                     None,
                 ),
             },
