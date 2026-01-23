@@ -225,8 +225,8 @@ class StateMachine(SmartyNode):
 
     def new_remote_state(self, msg: std_msgs.msg.UInt8):
         """Callback function for the remote state subscriber."""
-        if self._debug:
-            self.get_logger().info(f"Remote State: {msg.data}")
+        # if self._debug:
+        #     self.get_logger().info(f"Remote State: {msg.data}")
         self.blackboard.remote_state = msg.data
         return True
 

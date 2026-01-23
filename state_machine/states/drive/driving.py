@@ -1,5 +1,6 @@
 import time
-
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
@@ -82,30 +83,30 @@ class DrivingState(BaseState):
                 self.TRANSITIONS["approaching_intersection"]
             ):
                 return "approaching_intersection"
-            elif self._is_approaching_parking_area() and self._check_last_state(
-                self.TRANSITIONS["approaching_parking_area"]
-            ):
-                return "approaching_parking_area"
-            elif self._is_approaching_barred_area() and self._check_last_state(
-                self.TRANSITIONS["approaching_barred_area"]
-            ):
-                return "approaching_barred_area"
-            elif self._is_approaching_crosswalk() and self._check_last_state(
-                self.TRANSITIONS["approaching_crosswalk"]
-            ):
-                return "approaching_crosswalk"
-            elif self._is_approaching_express_way() and self._check_last_state(
-                self.TRANSITIONS["approaching_express_way"]
-            ):
-                return "approaching_express_way"
-            elif self._is_approaching_no_passing_zone() and self._check_last_state(
-                self.TRANSITIONS["approaching_no_passing_zone"]
-            ):
-                return "approaching_no_passing_zone"
-            elif self._is_approaching_obstacle() and self._check_last_state(
-                self.TRANSITIONS["approaching_obstacle"]
-            ):
-                return "approaching_obstacle"
+            # elif self._is_approaching_parking_area() and self._check_last_state(
+            #     self.TRANSITIONS["approaching_parking_area"]
+            # ):
+            #     return "approaching_parking_area"
+            # elif self._is_approaching_barred_area() and self._check_last_state(
+            #     self.TRANSITIONS["approaching_barred_area"]
+            # ):
+            #     return "approaching_barred_area"
+            # elif self._is_approaching_crosswalk() and self._check_last_state(
+            #     self.TRANSITIONS["approaching_crosswalk"]
+            # ):
+            #     return "approaching_crosswalk"
+            # elif self._is_approaching_express_way() and self._check_last_state(
+            #     self.TRANSITIONS["approaching_express_way"]
+            # ):
+            #     return "approaching_express_way"
+            # elif self._is_approaching_no_passing_zone() and self._check_last_state(
+            #     self.TRANSITIONS["approaching_no_passing_zone"]
+            # ):
+            #     return "approaching_no_passing_zone"
+            # elif self._is_approaching_obstacle() and self._check_last_state(
+            #     self.TRANSITIONS["approaching_obstacle"]
+            # ):
+            #     return "approaching_obstacle"
             self.log_state("Driving normally")
             time.sleep(0.0001)
 

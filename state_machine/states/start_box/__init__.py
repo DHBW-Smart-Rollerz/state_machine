@@ -14,4 +14,4 @@ class START_BOX_CONSTANTS:
     READY_TIMEOUT = 60.0 * 5  # seconds
 
     # Distance threshold for the start box detection
-    DISTANCE_THRESH = 300  # millimeters
+    DISTANCE_THRESH = 500  # millimeters

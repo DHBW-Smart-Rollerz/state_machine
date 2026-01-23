@@ -12,4 +12,4 @@ class OVERTAKE_CONSTANTS:
     STAY_DISTANCE = 1500  # mm
 
     # The maximum speed in m/s
-    MAX_SPEED = 0.3  # m/s
+    MAX_SPEED = 0.2  # m/s

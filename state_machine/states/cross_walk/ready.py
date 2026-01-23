@@ -37,9 +37,9 @@ class ReadyState(BaseState):
             str -- The next state to transition to
         """
         super().execute(blackboard)
-        start = time.time()
+        start = time.perf_counter()
 
-        while time.time() - start < CONSTANTS.CROSS_WALK.READY_TIMEOUT:
+        while time.perf_counter() - start < CONSTANTS.CROSS_WALK.READY_TIMEOUT:
             if check_dist_to_obj_sign(
                 self.blackboard.signs,
                 [SIGNS.CROSSWALK],

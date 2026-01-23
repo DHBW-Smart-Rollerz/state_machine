@@ -2,28 +2,28 @@ class DRIVE_CONSTANTS:
     """CONSTANTS for the drive state machine."""
 
     # Crosswalk Threshold
-    CROSSWALK_THRESHOLD = 500  # mm
+    CROSSWALK_THRESHOLD = 700  # mm
 
     # Barred Area Threshold
-    BARRED_AREA_THRESHOLD = 500  # mm
+    BARRED_AREA_THRESHOLD = 700  # mm
 
     # Overtaking Threshold
-    OVERTAKING_THRESHOLD = 900  # mm
+    OVERTAKING_THRESHOLD = 1300  # mm
 
     # Parking Area Threshold
-    PARKING_THRESHOLD = 500  # mm
+    PARKING_THRESHOLD = 700  # mm
 
     # Intersection Threshold
-    INTERSECTION_THRESHOLD = 500  # mm
+    INTERSECTION_THRESHOLD = 700  # mm
 
     # Express Way Threshold
-    EXPRESS_WAY_THRESHOLD = 500  # mm
+    EXPRESS_WAY_THRESHOLD = 700  # mm
 
     # No Passing Zone Threshold
-    NO_PASSING_ZONE_THRESHOLD = 500  # mm
+    NO_PASSING_ZONE_THRESHOLD = 700  # mm
 
     # Maximum Speed
-    MAX_SPEED = 0.5  # m/s
+    MAX_SPEED = 0.2  # m/s
 
     # State Timeout
     STATE_TIMEOUT = 5  # seconds
