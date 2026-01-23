@@ -13,7 +13,7 @@ from state_machine.utils.detectors import check_dist_to_obj_sign
 class DetectObstacleState(BaseState):
     """Handling Barred Area Cars."""
 
-    NAME = "barred-area-detect-pedestrian"
+    NAME = "barred-area-detect-obstacle"
     STATE_DESCRIPTION = StateDescription(
         light_configuration=Light.BLINK_LEFT_NORMAL,
         max_speed=CONSTANTS.BARRED_AREA.DETECT_SPEED,
