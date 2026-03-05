@@ -4,6 +4,7 @@ import state_msgs.msg
 from smarty_utils.enums import OBJECTS, SIGNS
 
 from state_machine.utils.detectors import get_object_location
+import yasmin
 
 
 def _calc_dist(obj_position: dict) -> float:
@@ -28,6 +29,7 @@ def create_obj_sign(msg: state_msgs.msg.State, parent: any) -> list[dict]:
         list of dicts with keys: id, position, distance, location, name, timestamp
     """
     obj_ids = {e.value for e in OBJECTS}
+
     results = []
     for obj in msg.tracked_objects:
         assert isinstance(obj, state_msgs.msg.TrackedObject), "Invalid object type"
@@ -38,8 +40,13 @@ def create_obj_sign(msg: state_msgs.msg.State, parent: any) -> list[dict]:
         obj_location = get_object_location(obj, left_lane, right_lane)
         obj_dist = _calc_dist(obj_position)
         obj_name = (
-            OBJECTS(obj.class_id) if obj.class_id in obj_ids else SIGNS(obj.class_id)
+            OBJECTS(int(obj.class_id))
+            if int(obj.class_id) in obj_ids
+            else SIGNS(int(obj.class_id))
         )
+        # yasmin.YASMIN_LOG_INFO(
+        #     f"Detected object/sign: id={obj_id}, name={obj_name}, position={obj_position}, distance={obj_dist:.2f}m, location={obj_location}, type={'OBJECT' if isinstance(obj_name, OBJECTS) else 'SIGN'}"
+        # )
         results.append(
             {
                 "id": obj_id,

@@ -10,7 +10,7 @@ import yasmin
 import yasmin_viewer
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
-from smarty_utils.enums import SIGNS, Light, Location, Nodes, NodeState
+from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
 from smarty_utils.smarty_node import SmartyNode
 
 from state_machine.components.state_description import BlackBoard
@@ -65,12 +65,12 @@ class StateMachine(SmartyNode):
                     None,
                 ),
                 "path_planning_left_subscriber": (
-                    geometry_msgs.msg.Vector3,
+                    std_msgs.msg.Float32MultiArray,
                     self.new_left_lane,
                     None,
                 ),
                 "path_planning_right_subscriber": (
-                    geometry_msgs.msg.Vector3,
+                    std_msgs.msg.Float32MultiArray,
                     self.new_right_lane,
                     None,
                 ),
@@ -212,7 +212,16 @@ class StateMachine(SmartyNode):
     def tracking_callback(self, msg: state_msgs.msg.State):
         """Callback function for the object detection object subscriber."""
         objects = create_obj_sign(msg, self)
-        self.blackboard.objects = objects
+        self.blackboard.objects = [
+            obj for obj in objects if isinstance(obj["name"], OBJECTS)
+        ]
+        self.blackboard.signs = [
+            obj for obj in objects if isinstance(obj["name"], SIGNS)
+        ]
+        self.get_logger().info(
+            f"Objects: {self.blackboard.objects}, Signs: {self.blackboard.signs}"
+        )
+        return True
 
     def new_remote_state(self, msg: std_msgs.msg.UInt8):
         """Callback function for the remote state subscriber."""
@@ -221,18 +230,18 @@ class StateMachine(SmartyNode):
         self.blackboard.remote_state = msg.data
         return True
 
-    def new_left_lane(self, msg: geometry_msgs.msg.Vector3):
+    def new_left_lane(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the left lane subscriber."""
-        line_coefs = [msg.x, msg.y, msg.z]
+        line_coefs = msg.data
         self.blackboard.lane_coefficients["left"] = np.poly1d(line_coefs)
         left_lane = self.blackboard.lane_coefficients.get("left", None)
         right_lane = self.blackboard.lane_coefficients.get("right", None)
         self.blackboard.car_lane = get_car_location(left_lane, right_lane)
         return True
 
-    def new_right_lane(self, msg: geometry_msgs.msg.Vector3):
+    def new_right_lane(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the right lane subscriber."""
-        line_coefs = [msg.x, msg.y, msg.z]
+        line_coefs = msg.data
         self.blackboard.lane_coefficients["right"] = np.poly1d(line_coefs)
         left_lane = self.blackboard.lane_coefficients.get("left", None)
         right_lane = self.blackboard.lane_coefficients.get("right", None)
@@ -388,7 +397,7 @@ class StateMachine(SmartyNode):
         self.state_machine_thread.join()
 
 
-def main(args=None, debug: bool = False):
+def main(args=None, debug: bool = True):
     """
     Main function to start the StateMachine.
 
