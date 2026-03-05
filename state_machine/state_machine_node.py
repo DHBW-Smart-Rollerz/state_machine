@@ -4,6 +4,7 @@ import time
 import geometry_msgs.msg
 import numpy as np
 import rclpy
+import state_msgs.msg
 import std_msgs.msg
 import yasmin
 import yasmin_viewer
@@ -46,8 +47,7 @@ class StateMachine(SmartyNode):
                 "remote_state_subscriber": "/remoteState",
                 "path_planning_left_subscriber": "/path_planning/target/left",
                 "path_planning_right_subscriber": "/path_planning/target/right",
-                "sign_topic": "/object_detection/sign",
-                "object_topic": "/object_detection/object",
+                "tracking_topic": "/tracking/state",
                 # Publisher topics
                 "lights_topic": "/lights",
                 "speed_limit_topic": "/control/velocity/target",
@@ -74,14 +74,9 @@ class StateMachine(SmartyNode):
                     self.new_right_lane,
                     None,
                 ),
-                "sign_topic": (
-                    std_msgs.msg.Float32MultiArray,
-                    self.sign_callback,
-                    None,
-                ),
-                "object_topic": (
-                    std_msgs.msg.Float32MultiArray,
-                    self.object_callback,
+                "tracking_topic": (
+                    state_msgs.msg.State,
+                    self.tracking_callback,
                     None,
                 ),
                 "drive_mode_topic": (
@@ -155,6 +150,7 @@ class StateMachine(SmartyNode):
             Nodes.PATH_PLANNING,
             Nodes.CONTROL,
             Nodes.STATE_ESTIMATION,
+            Nodes.TRACKING,
         ]:
             node_states[node] = ParameterStateParameter(
                 f"{node.value}_state",
@@ -213,15 +209,10 @@ class StateMachine(SmartyNode):
     # Callbacks for the subscribers
     ##############################
 
-    def object_callback(self, msg: std_msgs.msg.Float32MultiArray):
+    def tracking_callback(self, msg: state_msgs.msg.State):
         """Callback function for the object detection object subscriber."""
-        objects = create_obj_sign(msg, True, self)
+        objects = create_obj_sign(msg, self)
         self.blackboard.objects = objects
-
-    def sign_callback(self, msg: std_msgs.msg.Float32MultiArray):
-        """Callback function for the object detection sign subscriber."""
-        signs = create_obj_sign(msg, False, self)
-        self.blackboard.signs = signs
 
     def new_remote_state(self, msg: std_msgs.msg.UInt8):
         """Callback function for the remote state subscriber."""

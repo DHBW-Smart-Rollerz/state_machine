@@ -1,4 +1,5 @@
 import numpy as np
+import state_msgs.msg
 from smarty_utils.enums import OBJECTS, SIGNS, Location
 
 from state_machine.utils import RULE_CONSTANTS
@@ -6,7 +7,7 @@ from state_machine.utils import RULE_CONSTANTS
 
 def check_dist_to_obj_sign(
     objects: list,
-    obj_types: OBJECTS | list[OBJECTS],
+    obj_types: OBJECTS | list[OBJECTS] | SIGNS | list[SIGNS],
     dist_threshold: float,
     location: Location = Location.NOT_RELEVANT,
 ) -> bool:
@@ -87,74 +88,112 @@ def get_boarders(
     return left_boarder, center_boarder, right_boarder
 
 
-def _get_position(
-    left_boarder: float,
-    center_boarder: float,
-    right_boarder: float,
-    ly: float = 0.0,
-    ry: float = 0.0,
-) -> Location:
-    """
-    Get the position of the car based on the lane boarders.
-
-    Arguments:
-        left_boarder -- left lane boarder
-        center_boarder -- center lane boarder
-        right_boarder -- right lane boarder
-
-    Returns:
-        Location -- location of the obj
-    """
-    # 1. Case is in the right lane
-    if left_boarder > ly and right_boarder < ry:
-        if center_boarder < (ly + ry) / 2:
-            return Location.LEFT_LANE
-        else:
-            return Location.RIGHT_LANE
-    elif left_boarder < ly:
-        return Location.LEFT
-    # 4. Case is right of the right lane
-    elif right_boarder > ry:
-        return Location.RIGHT
-    # 5. We don't know where the is
-    return Location.UNKNOWN
-
-
 def get_car_location(left_lane: any, right_lane: any) -> Location:
     """
     Get the location of the car based on the lane information.
-    Car center is fixed at (0,0).
+
+    The car's reference point is the centre of the front axle, which is fixed
+    at the ego-coordinate origin (x=0, y=0).  X points forward, Y points left.
+
+    The Y=0 point is classified against the four road zones evaluated at x=0:
+      - LEFT       : y=0 is left  of the left road border  (Y > left_boarder)
+      - LEFT_LANE  : y=0 is in the left (oncoming) lane
+      - RIGHT_LANE : y=0 is in the right (ego) lane
+      - RIGHT      : y=0 is right of the right road border (Y < right_boarder)
 
     Arguments:
-        left_lane -- tuple with left lane information (parabola coefficients)
-        right_lane -- tuple with right lane information (parabola coefficients)
+        left_lane  -- callable parabola for the left  lane line (higher Y)
+        right_lane -- callable parabola for the right lane line (lower  Y)
 
     Returns:
-        Location -- location of the car
+        Location -- LEFT, LEFT_LANE, RIGHT_LANE, RIGHT, or UNKNOWN
     """
     if left_lane is None or right_lane is None:
         return Location.UNKNOWN
 
+    # Evaluate lane borders at the front-axle position (x=0)
     left_boarder, center_boarder, right_boarder = get_boarders(
         left_lane, right_lane, 0.0
     )
+    # left_boarder >= center_boarder >= right_boarder  (Y axis points left)
 
-    return _get_position(left_boarder, center_boarder, right_boarder)
+    car_y = 0.0  # front-axle centre in ego coordinates
+
+    if car_y >= left_boarder:
+        return Location.LEFT
+    elif car_y >= center_boarder:
+        return Location.LEFT_LANE
+    elif car_y >= right_boarder:
+        return Location.RIGHT_LANE
+    else:
+        return Location.RIGHT
 
 
-def get_object_location(obj_position: dict, left_line: any, right_line: any) -> tuple:
-    """Get the location of the object."""
-    assert isinstance(obj_position, dict), "Invalid object position type"
-    lx = obj_position["bottom_left_x"]
-    rx = obj_position["bottom_right_x"]
-    ly = obj_position["bottom_left_y"]
-    ry = obj_position["bottom_right_y"]
+def get_object_location(
+    object: state_msgs.msg.TrackedObject, left_line: any, right_line: any
+) -> Location:
+    """
+    Get the location of an object relative to the road lanes.
 
+    The object is classified into one of four zones evaluated at the object's
+    center X position:
+      - LEFT       : entirely left of the left road border (Y > left_boarder)
+      - LEFT_LANE  : left (oncoming) lane between center line and left border
+      - RIGHT_LANE : right (ego) lane between right border and center line
+      - RIGHT      : entirely right of the right road border (Y < right_boarder)
+
+    An object is considered ON a lane as soon as any part of its bounding box
+    (width in Y) overlaps that lane's Y interval.  When the box spans both lanes
+    the lane containing the object's center Y is returned.
+
+    Coordinate convention: X forward, Y to the left.
+
+    Arguments:
+        object    -- TrackedObject with position_x, position_y (ground-plane
+                     centre) and width (Y-extent of the bounding box)
+        left_line  -- callable parabola for the left lane line  (higher Y)
+        right_line -- callable parabola for the right lane line (lower Y)
+
+    Returns:
+        Location -- LEFT, LEFT_LANE, RIGHT_LANE, RIGHT, or UNKNOWN
+    """
     if left_line is None or right_line is None:
         return Location.UNKNOWN
 
-    left_boarder, center_boarder1, _ = get_boarders(left_line, right_line, lx)
-    _, center_boarder2, right_boarder = get_boarders(left_line, right_line, rx)
-    center_boarder = np.mean([center_boarder1, center_boarder2])
+    cx = object.position_x
+    cy = object.position_y
+    half_w = object.width / 2
 
-    return _get_position(left_boarder, center_boarder, right_boarder, ly, ry)
+    # Bounding-box Y edges (left edge has higher Y because Y goes left)
+    obj_y_left = cy + half_w  # leftmost Y of the bounding box
+    obj_y_right = cy - half_w  # rightmost Y of the bounding box
+
+    # Evaluate lane borders at the object's centre X
+    left_boarder, center_boarder, right_boarder = get_boarders(
+        left_line, right_line, cx
+    )
+    # left_boarder  >= center_boarder >= right_boarder  (Y axis points left)
+
+    # Check overlap with each zone using the bounding-box edges:
+    #   LEFT_LANE  zone: [center_boarder, left_boarder]
+    #   RIGHT_LANE zone: [right_boarder,  center_boarder]
+    # Overlap exists when obj_y_left > zone_lower AND obj_y_right < zone_upper
+    on_left_lane = obj_y_left > center_boarder and obj_y_right < left_boarder
+    on_right_lane = obj_y_left > right_boarder and obj_y_right < center_boarder
+
+    if on_left_lane and on_right_lane:
+        # Box spans both lanes – use the centre Y to decide
+        if cy >= center_boarder:
+            return Location.LEFT_LANE
+        else:
+            return Location.RIGHT_LANE
+    elif on_left_lane:
+        return Location.LEFT_LANE
+    elif on_right_lane:
+        return Location.RIGHT_LANE
+    elif cy >= left_boarder:
+        # Object is fully to the left of the road
+        return Location.LEFT
+    else:
+        # Object is fully to the right of the road
+        return Location.RIGHT
