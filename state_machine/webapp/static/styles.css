@@ -60,6 +60,35 @@ table tr td[colspan] {
     background-color: #17a2b8;
 }
 
+/* Lane coefficients table specific styles */
+#lane-table th {
+    background-color: #6f42c1;
+}
+
+#lane-table tr td:first-child {
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+/* Top-down canvas visualisation */
+#visualization-section {
+    margin-bottom: 24px;
+}
+
+#canvas-wrapper {
+    width: 100%;
+    background: #1a1a2e;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    line-height: 0;
+}
+
+#scene-canvas {
+    display: block;
+    width: 100%;
+}
+
 /* Current state styling */
 #current-state {
     background-color: #28a745;

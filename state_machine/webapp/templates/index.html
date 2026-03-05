@@ -1,3 +1,4 @@
+S
 <!DOCTYPE html>
 <html lang="de">
 
@@ -51,6 +52,13 @@
             </table>
         </section>
 
+        <section id="visualization-section">
+            <h2>Top-Down View</h2>
+            <div id="canvas-wrapper">
+                <canvas id="scene-canvas"></canvas>
+            </div>
+        </section>
+
         <section>
             <h2>Detected Objects</h2>
             <table id="objects-table">
@@ -58,12 +66,14 @@
                     <tr>
                         <th>Object</th>
                         <th>Location</th>
-                        <th>Distance</th>
+                        <th>Distance (mm)</th>
+                        <th>X (mm)</th>
+                        <th>Y (mm)</th>
                     </tr>
                 </thead>
                 <tbody id="objects-list">
                     <tr>
-                        <td colspan="3">No objects detected</td>
+                        <td colspan="5">No objects detected</td>
                     </tr>
                 </tbody>
             </table>
@@ -74,12 +84,32 @@
                     <tr>
                         <th>Sign</th>
                         <th>Location</th>
-                        <th>Distance</th>
+                        <th>Distance (mm)</th>
+                        <th>X (mm)</th>
+                        <th>Y (mm)</th>
                     </tr>
                 </thead>
                 <tbody id="signs-list">
                     <tr>
-                        <td colspan="3">No signs detected</td>
+                        <td colspan="5">No signs detected</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>Lane Coefficients</h2>
+            <table id="lane-table">
+                <thead id="lane-table-head">
+                    <tr>
+                        <th>Lane</th>
+                        <th>a₀ (offset)</th>
+                        <th>a₁ (linear)</th>
+                        <th>a₂ (quadratic)</th>
+                        <th>a₃ (cubic)</th>
+                    </tr>
+                </thead>
+                <tbody id="lane-list">
+                    <tr>
+                        <td colspan="5">No lane data available</td>
                     </tr>
                 </tbody>
             </table>
@@ -165,9 +195,13 @@
                             <td>${obj.name}</td>
                             <td>${obj.location}</td>
                             <td>${obj.distance}</td>
+                            <td>${obj.x}</td>
+                            <td>${obj.y}</td>
                         </tr>
                     `;
                 });
+            } else {
+                newObjectsHTML = '<tr><td colspan="5">No objects detected</td></tr>';
             }
             if (currentObjectsHTML !== newObjectsHTML) {
                 objectsList.innerHTML = newObjectsHTML;
@@ -184,14 +218,371 @@
                             <td>${sign.name}</td>
                             <td>${sign.location}</td>
                             <td>${sign.distance}</td>
+                            <td>${sign.x}</td>
+                            <td>${sign.y}</td>
                         </tr>
                     `;
                 });
+            } else {
+                newSignsHTML = '<tr><td colspan="5">No signs detected</td></tr>';
             }
             if (currentSignsHTML !== newSignsHTML) {
                 signsList.innerHTML = newSignsHTML;
             }
+
+            // Update lane coefficients table – dynamic columns based on degree
+            const laneList = document.getElementById('lane-list');
+            const laneHead = document.getElementById('lane-table-head');
+            const currentLaneHTML = laneList.innerHTML;
+            let newLaneHTML = '';
+            let newLaneHeadHTML = '';
+
+            if (data.lane_coefficients && Object.keys(data.lane_coefficients).length > 0) {
+                // Determine the maximum number of coefficients across all lanes
+                const maxDegree = Math.max(
+                    ...Object.values(data.lane_coefficients).map(c => c.length)
+                );
+                // Build header: Lane | a₀ | a₁ | a₂ | ...
+                const POWER_NAMES = ['offset', 'linear', 'quadratic', 'cubic', 'quartic'];
+                newLaneHeadHTML = '<tr><th>Lane</th>';
+                for (let i = 0; i < maxDegree; i++) {
+                    const label = i < POWER_NAMES.length ? POWER_NAMES[i] : `x^${i}`;
+                    newLaneHeadHTML += `<th>a${i} (${label})</th>`;
+                }
+                newLaneHeadHTML += '</tr>';
+
+                // Build rows
+                Object.entries(data.lane_coefficients).forEach(([side, coefs]) => {
+                    newLaneHTML += `<tr><td>${side}</td>`;
+                    for (let i = 0; i < maxDegree; i++) {
+                        newLaneHTML += `<td>${coefs[i] !== undefined ? coefs[i] : '-'}</td>`;
+                    }
+                    newLaneHTML += '</tr>';
+                });
+            } else {
+                newLaneHeadHTML = '<tr><th>Lane</th><th>a₀ (offset)</th><th>a₁ (linear)</th><th>a₂ (quadratic)</th><th>a₃ (cubic)</th></tr>';
+                newLaneHTML = '<tr><td colspan="5">No lane data available</td></tr>';
+            }
+            if (laneHead.innerHTML !== newLaneHeadHTML) laneHead.innerHTML = newLaneHeadHTML;
+            if (currentLaneHTML !== newLaneHTML) laneList.innerHTML = newLaneHTML;
+
+            // Update canvas visualisation
+            drawScene(data);
         }
+
+        // ─── Canvas visualisation ────────────────────────────────────────────
+        const canvas = document.getElementById('scene-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // View parameters (all world values are in mm)
+        const VIEW_X_MIN = 0;   // mm ahead of the car (front axle at 0)
+        const VIEW_X_MAX = 2500;   // mm ahead
+        const VIEW_Y_HALF = 700;   // mm left / right of centre
+
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            canvas.width = wrapper.clientWidth;
+            canvas.height = Math.round(canvas.width * 0.55);
+        }
+        resizeCanvas();
+        window.addEventListener('resize', () => { resizeCanvas(); drawScene(lastData); });
+
+        let lastData = { objects: [], signs: [], lane_coefficients: {} };
+
+        // World → canvas pixel mapping.
+        // World X (forward) maps to canvas Y (top = far, bottom = car).
+        // World Y (left)    maps to canvas X (centre = 0, right = positive Y).
+        function worldToCanvas(wx, wy) {
+            const cw = canvas.width;
+            const ch = canvas.height;
+            const px = cw / 2 - wy * (cw / 2) / VIEW_Y_HALF;
+            const py = ch - (wx - VIEW_X_MIN) * ch / (VIEW_X_MAX - VIEW_X_MIN);
+            return [px, py];
+        }
+
+        // Evaluate a low-to-high polynomial  [a₀, a₁, a₂, ...]  at x.
+        // Works for any number of coefficients — linear, quadratic, cubic, etc.
+        function evalPoly(coefs, x) {
+            if (!coefs || coefs.length === 0) return 0;
+            let result = 0;
+            for (let i = 0; i < coefs.length; i++) {
+                result += coefs[i] * Math.pow(x, i);
+            }
+            return result;
+        }
+
+        // Build a poly-path on the canvas between x = VIEW_X_MIN and VIEW_X_MAX.
+        function polyPath(coefs, steps) {
+            const xStep = (VIEW_X_MAX - VIEW_X_MIN) / steps;
+            ctx.beginPath();
+            for (let i = 0; i <= steps; i++) {
+                const wx = VIEW_X_MIN + i * xStep;
+                const wy = evalPoly(coefs, wx);
+                const [px, py] = worldToCanvas(wx, wy);
+                i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+        }
+
+        function drawScene(data) {
+            if (!data) return;
+            lastData = data;
+
+            const cw = canvas.width;
+            const ch = canvas.height;
+            ctx.clearRect(0, 0, cw, ch);
+
+            // ── Background ──────────────────────────────────────────────────
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, cw, ch);
+
+            const laneCoefs = data.lane_coefficients || {};
+            const leftCoefs = laneCoefs['left'];   // low-to-high [a₀,a₁,...], higher Y
+            const rightCoefs = laneCoefs['right'];  // low-to-high [a₀,a₁,...], lower  Y
+
+            const STEPS = 160;
+            const HALF_LW = 100; // mm — matches RULE_CONSTANTS.lane_width / 2
+
+            // ── Lane geometry ────────────────────────────────────────────────
+            // Mirrors get_boarders() in Python:
+            //   right_line(x) → inner Y of left lane  (= "right" variable)
+            //   left_line(x)  → inner Y of right lane (= "left"  variable)
+            //   left_boarder  = left_line(x)  + HALF_LW   (outer-left  edge)
+            //   right_boarder = right_line(x) - HALF_LW   (outer-right edge)
+            //   center        = (left_line(x) + right_line(x)) / 2
+            function leftBorderY(wx) { return evalPoly(leftCoefs, wx) + HALF_LW; }
+            function rightBorderY(wx) { return evalPoly(rightCoefs, wx) - HALF_LW; }
+            function centerY(wx) { return (evalPoly(leftCoefs, wx) + evalPoly(rightCoefs, wx)) / 2; }
+
+            if (leftCoefs && rightCoefs) {
+                const xStep = (VIEW_X_MAX - VIEW_X_MIN) / STEPS;
+
+                // ── Road fill ────────────────────────────────────────────────
+                ctx.beginPath();
+                // Outer-right edge forward
+                for (let i = 0; i <= STEPS; i++) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, rightBorderY(wx));
+                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                }
+                // Outer-left edge reverse
+                for (let i = STEPS; i >= 0; i--) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, leftBorderY(wx));
+                    ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fillStyle = '#2d2d44';
+                ctx.fill();
+
+                // ── Left-lane fill (oncoming) ────────────────────────────────
+                ctx.beginPath();
+                for (let i = 0; i <= STEPS; i++) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, centerY(wx));
+                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                }
+                for (let i = STEPS; i >= 0; i--) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, leftBorderY(wx));
+                    ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255,100,100,0.06)';
+                ctx.fill();
+
+                // ── Right-lane fill (ego) ────────────────────────────────────
+                ctx.beginPath();
+                for (let i = 0; i <= STEPS; i++) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, rightBorderY(wx));
+                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                }
+                for (let i = STEPS; i >= 0; i--) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, centerY(wx));
+                    ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(100,255,100,0.06)';
+                ctx.fill();
+
+                // ── Centre line (dashed white) ───────────────────────────────
+                ctx.setLineDash([12, 10]);
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i <= STEPS; i++) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, centerY(wx));
+                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // ── Outer road edges (solid white) ───────────────────────────
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                for (let i = 0; i <= STEPS; i++) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, leftBorderY(wx));
+                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.beginPath();
+                for (let i = 0; i <= STEPS; i++) {
+                    const wx = VIEW_X_MIN + i * xStep;
+                    const [px, py] = worldToCanvas(wx, rightBorderY(wx));
+                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                // ── Lane lines (solid yellow) ────────────────────────────────
+                ctx.strokeStyle = '#f5c518';
+                ctx.lineWidth = 2.5;
+                polyPath(leftCoefs, STEPS); ctx.stroke();
+                polyPath(rightCoefs, STEPS); ctx.stroke();
+            }
+
+            // ── Grid / axes ─────────────────────────────────────────────────
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            // Horizontal grid lines every 500 mm
+            for (let wx = VIEW_X_MIN; wx <= VIEW_X_MAX; wx += 500) {
+                const [x1, y1] = worldToCanvas(wx, -VIEW_Y_HALF);
+                const [x2, y2] = worldToCanvas(wx, VIEW_Y_HALF);
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                ctx.font = '10px monospace';
+                ctx.fillText(`${wx}mm`, x2 + 3, y2 + 3);
+            }
+            // Vertical grid lines every 200 mm
+            for (let wy = -VIEW_Y_HALF; wy <= VIEW_Y_HALF; wy += 200) {
+                const [x1, y1] = worldToCanvas(VIEW_X_MIN, wy);
+                const [x2, y2] = worldToCanvas(VIEW_X_MAX, wy);
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            }
+
+            // ── Objects ──────────────────────────────────────────────────────
+            (data.objects || []).forEach(obj => {
+                const wx = obj.x;
+                const wy = obj.y;
+                if (wx < VIEW_X_MIN || wx > VIEW_X_MAX) return;
+
+                const halfW = (obj.width || 200) / 2; // Y extent
+                const halfL = 150; // assumed length in X (mm)
+
+                // Four corners of the bounding box
+                const corners = [
+                    worldToCanvas(wx - halfL, wy - halfW),
+                    worldToCanvas(wx + halfL, wy - halfW),
+                    worldToCanvas(wx + halfL, wy + halfW),
+                    worldToCanvas(wx - halfL, wy + halfW),
+                ];
+
+                ctx.beginPath();
+                ctx.moveTo(corners[0][0], corners[0][1]);
+                corners.forEach(([px, py]) => ctx.lineTo(px, py));
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(30, 120, 255, 0.35)';
+                ctx.strokeStyle = '#1e78ff';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                // Label
+                const [cx, cy] = worldToCanvas(wx, wy);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(obj.name.split('.').pop(), cx, cy - 4);
+                ctx.font = '10px monospace';
+                ctx.fillText(`${obj.distance}mm`, cx, cy + 8);
+                ctx.textAlign = 'left';
+            });
+
+            // ── Signs ────────────────────────────────────────────────────────
+            (data.signs || []).forEach(sign => {
+                const wx = sign.x;
+                const wy = sign.y;
+                if (wx < VIEW_X_MIN || wx > VIEW_X_MAX) return;
+
+                const [px, py] = worldToCanvas(wx, wy);
+                const r = 10;
+
+                // Diamond shape
+                ctx.beginPath();
+                ctx.moveTo(px, py - r);
+                ctx.lineTo(px + r, py);
+                ctx.lineTo(px, py + r);
+                ctx.lineTo(px - r, py);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255, 160, 0, 0.5)';
+                ctx.strokeStyle = '#ffa000';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(sign.name.split('.').pop(), px, py - r - 4);
+                ctx.textAlign = 'left';
+            });
+
+            // ── Car (ego vehicle) ────────────────────────────────────────────
+            const CAR_W = 180; // mm
+            const CAR_L = 280; // mm
+            const carCorners = [
+                worldToCanvas(-CAR_L / 2, CAR_W / 2),
+                worldToCanvas(CAR_L / 2, CAR_W / 2),
+                worldToCanvas(CAR_L / 2, -CAR_W / 2),
+                worldToCanvas(-CAR_L / 2, -CAR_W / 2),
+            ];
+            ctx.beginPath();
+            ctx.moveTo(carCorners[0][0], carCorners[0][1]);
+            carCorners.forEach(([px, py]) => ctx.lineTo(px, py));
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(40, 167, 69, 0.6)';
+            ctx.strokeStyle = '#28a745';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+            // Direction arrow
+            const [ax0, ay0] = worldToCanvas(0, 0);
+            const [ax1, ay1] = worldToCanvas(CAR_L / 2, 0);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(ax0, ay0); ctx.lineTo(ax1, ay1); ctx.stroke();
+            // Arrow head
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(ax1, ay1);
+            ctx.lineTo(ax1 + 6, ay1 - 5);
+            ctx.lineTo(ax1 + 6, ay1 + 5);
+            ctx.closePath();
+            ctx.fill();
+
+            // ── Legend ───────────────────────────────────────────────────────
+            const legendX = 10, legendY = 12, lh = 16;
+            ctx.font = '11px sans-serif';
+            [
+                ['#28a745', 'Ego vehicle'],
+                ['#1e78ff', 'Object'],
+                ['#ffa000', 'Sign'],
+                ['#f5c518', 'Lane line'],
+                ['rgba(255,255,255,0.6)', 'Centre line'],
+            ].forEach(([color, label], i) => {
+                ctx.fillStyle = color;
+                ctx.fillRect(legendX, legendY + i * lh, 12, 10);
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fillText(label, legendX + 16, legendY + i * lh + 9);
+            });
+        }
+
+        // Initial blank draw
+        drawScene(lastData);
     </script>
 
 </body>

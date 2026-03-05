@@ -232,7 +232,9 @@ class StateMachine(SmartyNode):
 
     def new_left_lane(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the left lane subscriber."""
-        line_coefs = msg.data
+        # Coefficients arrive in low-to-high order [a₀, a₁, a₂] → a₀ + a₁·x + a₂·x²
+        # np.poly1d expects high-to-low order [a₂, a₁, a₀], so reverse before passing.
+        line_coefs = list(reversed(msg.data))
         self.blackboard.lane_coefficients["left"] = np.poly1d(line_coefs)
         left_lane = self.blackboard.lane_coefficients.get("left", None)
         right_lane = self.blackboard.lane_coefficients.get("right", None)
@@ -241,7 +243,9 @@ class StateMachine(SmartyNode):
 
     def new_right_lane(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the right lane subscriber."""
-        line_coefs = msg.data
+        # Coefficients arrive in low-to-high order [a₀, a₁, a₂] → a₀ + a₁·x + a₂·x²
+        # np.poly1d expects high-to-low order [a₂, a₁, a₀], so reverse before passing.
+        line_coefs = list(reversed(msg.data))
         self.blackboard.lane_coefficients["right"] = np.poly1d(line_coefs)
         left_lane = self.blackboard.lane_coefficients.get("left", None)
         right_lane = self.blackboard.lane_coefficients.get("right", None)

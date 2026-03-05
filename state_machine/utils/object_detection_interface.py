@@ -1,10 +1,10 @@
 import numpy as np
 import state_msgs
 import state_msgs.msg
+import yasmin
 from smarty_utils.enums import OBJECTS, SIGNS
 
 from state_machine.utils.detectors import get_object_location
-import yasmin
 
 
 def _calc_dist(obj_position: dict) -> float:
@@ -54,6 +54,7 @@ def create_obj_sign(msg: state_msgs.msg.State, parent: any) -> list[dict]:
                 "distance": obj_dist,
                 "location": obj_location,
                 "name": obj_name,
+                "width": float(obj.width),
                 "timestamp": parent.get_clock().now().nanoseconds,
             }
         )

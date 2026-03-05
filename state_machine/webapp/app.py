@@ -126,7 +126,16 @@ def create_app(blackboard: BlackBoard):
             "speed_limit": str(app.blackboard.speed_limit),
             "objects": [],
             "signs": [],
+            "lane_coefficients": {},
         }
+
+        # Add lane coefficients data
+        for side, poly in app.blackboard.lane_coefficients.items():
+            # poly1d stores coefficients high-to-low; reverse back to low-to-high
+            # for readability: [a, b, c, ...] → a + b*x + c*x² + ...
+            params["lane_coefficients"][side] = [
+                round(float(c), 4) for c in reversed(poly.coeffs)
+            ]
 
         # Add objects data
         if hasattr(app.blackboard, "objects") and app.blackboard.objects:
@@ -135,7 +144,10 @@ def create_app(blackboard: BlackBoard):
                     "id": obj["id"],
                     "name": str(obj["name"]),
                     "location": str(obj["location"]),
-                    "distance": obj["distance"],
+                    "distance": round(float(obj["distance"]), 1),
+                    "x": round(float(obj["position"]["x"]), 1),
+                    "y": round(float(obj["position"]["y"]), 1),
+                    "width": round(float(obj.get("width", 200)), 1),
                 }
                 for obj in app.blackboard.objects
             ]
@@ -147,7 +159,9 @@ def create_app(blackboard: BlackBoard):
                     "id": sign["id"],
                     "name": str(sign["name"]),
                     "location": str(sign["location"]),
-                    "distance": sign["distance"],
+                    "distance": round(float(sign["distance"]), 1),
+                    "x": round(float(sign["position"]["x"]), 1),
+                    "y": round(float(sign["position"]["y"]), 1),
                 }
                 for sign in app.blackboard.signs
             ]
@@ -209,10 +223,6 @@ async def websocket_handler(websocket, _, blackboard):
         websocket (WebSocket): The WebSocket connection to the client.
         _ (Any): Placeholder for an unused argument.
         blackboard (object): An object containing the state information to be sent to the client.
-            Expected attributes:
-            - light_configuration (Any): The current light configuration.
-            - max_speed (Any): The maximum speed setting.
-            - goal_lane (Any): The target lane.
 
     Behavior:
         - Constructs a dictionary of parameters from the blackboard's attributes.
@@ -220,13 +230,44 @@ async def websocket_handler(websocket, _, blackboard):
         - Repeats the process every 0.1 seconds indefinitely.
     """
     while True:
+        lane_coefs = {}
+        for side, poly in blackboard.lane_coefficients.items():
+            lane_coefs[side] = [round(float(c), 4) for c in reversed(poly.coeffs)]
+
         params = {
+            "current_state": str(blackboard.current_state),
             "light_configuration": str(blackboard.light_configuration),
             "max_speed": blackboard.max_speed,
             "goal_lane": str(blackboard.goal_lane),
+            "car_lane": str(blackboard.car_lane),
+            "speed_limit": str(blackboard.speed_limit),
+            "lane_coefficients": lane_coefs,
+            "objects": [
+                {
+                    "id": obj["id"],
+                    "name": str(obj["name"]),
+                    "location": str(obj["location"]),
+                    "distance": round(float(obj["distance"]), 1),
+                    "x": round(float(obj["position"]["x"]), 1),
+                    "y": round(float(obj["position"]["y"]), 1),
+                    "width": round(float(obj.get("width", 200)), 1),
+                }
+                for obj in (blackboard.objects or [])
+            ],
+            "signs": [
+                {
+                    "id": sign["id"],
+                    "name": str(sign["name"]),
+                    "location": str(sign["location"]),
+                    "distance": round(float(sign["distance"]), 1),
+                    "x": round(float(sign["position"]["x"]), 1),
+                    "y": round(float(sign["position"]["y"]), 1),
+                }
+                for sign in (blackboard.signs or [])
+            ],
         }
         await websocket.send(json.dumps(params))
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
 
 
 def create_and_run_flask_app(blackboard):
