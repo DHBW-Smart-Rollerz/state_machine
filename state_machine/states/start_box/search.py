@@ -55,7 +55,9 @@ class SearchState(BaseState):
         """
         super().local_execute(blackboard)
 
-        while not self._is_start_box_detected(blackboard):
+        while (
+            not self._is_start_box_detected(blackboard) and False
+        ):  # TODO: Remove False to enable search
             self.log_state("Start Box: Waiting for stop sign to be detected")
             time.sleep(0.0001)
             if self._check_timeout():

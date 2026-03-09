@@ -275,9 +275,9 @@ S
         const ctx = canvas.getContext('2d');
 
         // View parameters (all world values are in mm)
-        const VIEW_X_MIN = 0;   // mm ahead of the car (front axle at 0)
-        const VIEW_X_MAX = 2500;   // mm ahead
-        const VIEW_Y_HALF = 700;   // mm left / right of centre
+        const VIEW_X_MIN = -2000;   // mm ahead of the car (front axle at 0)
+        const VIEW_X_MAX = 4000;   // mm ahead
+        const VIEW_Y_HALF = 3000;   // mm left / right of centre
 
         function resizeCanvas() {
             const wrapper = document.getElementById('canvas-wrapper');
@@ -300,15 +300,17 @@ S
             return [px, py];
         }
 
-        // Evaluate a low-to-high polynomial  [a₀, a₁, a₂, ...]  at x.
-        // Works for any number of coefficients — linear, quadratic, cubic, etc.
+        // Evaluate a low-to-high polynomial [a0, a1, a2, ...] at world x.
+        // Incoming lane coefficients are in meters, while the canvas world uses mm.
+        // Convert x from mm -> m for evaluation, then convert y from m -> mm.
         function evalPoly(coefs, x) {
             if (!coefs || coefs.length === 0) return 0;
+            const xM = x / 1000; // mm → m (coefficients are in metres)
             let result = 0;
             for (let i = 0; i < coefs.length; i++) {
-                result += coefs[i] * Math.pow(x, i);
+                result += coefs[i] * Math.pow(xM, i);
             }
-            return result;
+            return result * 1000; // m → mm
         }
 
         // Build a poly-path on the canvas between x = VIEW_X_MIN and VIEW_X_MAX.
@@ -323,6 +325,12 @@ S
             }
         }
 
+        // ── Debug parabola ──────────────────────────────────────────────────────
+        const DEBUG_PARABOLA = false;
+        // const DEBUG_LEFT_COEFS = [0.35, 0, 0.05, 0];  // y(m) = 0.35 + 0.05·x²
+        const DEBUG_LEFT_COEFS = [0.006, 0.0133, 0.0281, 0.4003];  // y(m) = 0.35 − 0.05·x²
+        const DEBUG_RIGHT_COEFS = [-0.35, 0, -0.20, 0];  // y(m) = −0.35 − 0.05·x²
+
         function drawScene(data) {
             if (!data) return;
             lastData = data;
@@ -336,11 +344,11 @@ S
             ctx.fillRect(0, 0, cw, ch);
 
             const laneCoefs = data.lane_coefficients || {};
-            const leftCoefs = laneCoefs['left'];   // low-to-high [a₀,a₁,...], higher Y
-            const rightCoefs = laneCoefs['right'];  // low-to-high [a₀,a₁,...], lower  Y
+            const leftCoefs = DEBUG_PARABOLA ? DEBUG_LEFT_COEFS : (laneCoefs['left'] ?? null);
+            const rightCoefs = DEBUG_PARABOLA ? DEBUG_RIGHT_COEFS : (laneCoefs['right'] ?? null);
 
             const STEPS = 160;
-            const HALF_LW = 100; // mm — matches RULE_CONSTANTS.lane_width / 2
+            const HALF_LW = 200; // mm — matches RULE_CONSTANTS.lane_width / 2
 
             // ── Lane geometry ────────────────────────────────────────────────
             // Mirrors get_boarders() in Python:
