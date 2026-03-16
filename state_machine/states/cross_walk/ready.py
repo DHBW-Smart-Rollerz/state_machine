@@ -5,7 +5,7 @@ from smarty_utils.enums import SIGNS, Light
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
-from state_machine.states.cross_walk.detect_pedestrian import DetectPedestrian
+from state_machine.states.cross_walk.approach import ApproachCrosswalk
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
 
@@ -21,7 +21,7 @@ class ReadyState(BaseState):
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
         self.TRANSITIONS = {
-            "crosswalk": DetectPedestrian.NAME,
+            "approach": ApproachCrosswalk.NAME,
             "canceled": "canceled",
         }
         super().__init__(debug)
@@ -45,7 +45,7 @@ class ReadyState(BaseState):
                 [SIGNS.CROSSWALK],
                 CONSTANTS.CROSS_WALK.START_DIST,
             ):
-                return "crosswalk"
+                return "approach"
 
             self.log_state("Crosswalk: Searching for sign")
 
