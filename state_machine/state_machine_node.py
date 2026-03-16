@@ -115,8 +115,10 @@ class StateMachine(SmartyNode):
             target=lambda x: self.sm(x), args=(self.blackboard,)
         )
         self.speed_limit_thread.daemon = True
+        self.target_pose_thread.daemon = True
         self.state_machine_thread.daemon = True
         self.speed_limit_thread.start()
+        self.target_pose_thread.start()
         self.state_machine_thread.start()
 
         if self._debug:
@@ -320,15 +322,12 @@ class StateMachine(SmartyNode):
         Returns:
             tuple: Tuple containing (x, y, theta) representing the reference point coordinates and angle.
         """
-        p = np.poly1d(coefficients[::-1])
-        x = 0.1
-        y = p(x)
-        y__temp = y
-        theta = +1 * math.atan(
-            3 * coefficients[3] * ((y__temp) ** 2)
-            + 2 * coefficients[2] * (y__temp)
-            + coefficients[1]
-        )
+        # coefficients is a np.poly1d (high-to-low order), already callable.
+        # Evaluate the lane position and slope at a look-ahead of 0.1 m.
+        x = 0.1  # look-ahead in metres
+        y = coefficients(x)
+        slope = coefficients.deriv()(x)  # dy/dx at x
+        theta = math.atan(slope)
         return x, y, theta
 
     def target_pose_publisher_fun_thread(self, blackboard: BlackBoard):
@@ -340,27 +339,22 @@ class StateMachine(SmartyNode):
         """
         while rclpy.ok():
             time.sleep(0.1)
-            if blackboard.goal_lane == Location.LEFT_LANE:
+            if blackboard.goal_lane in (Location.LEFT_LANE, Location.LEFT):
                 target_coeffs = blackboard.lane_coefficients.get("left", None)
-            elif blackboard.goal_lane == Location.RIGHT_LANE:
+            elif blackboard.goal_lane in (Location.RIGHT_LANE, Location.RIGHT):
                 target_coeffs = blackboard.lane_coefficients.get("right", None)
-            target_pose = {
-                "x": 0.0,
-                "y": 0.0,
-                "z": 0.0,
-            }
-            if any(target_coeffs.values()):
-                ref_x, ref_y, theta = self._ref_point_controller(target_coeffs)
+            else:
+                target_coeffs = None
 
-                if theta <= 0.3:
-                    theta = theta / 4
-                target_pose = {
-                    "x": ref_x,
-                    "y": ref_y,
-                    "z": theta,
-                }
-            if target_pose is not None:
-                self.target_pose_publisher_fun(target_pose)
+            if target_coeffs is None:
+                continue
+
+            ref_x, ref_y, theta = self._ref_point_controller(target_coeffs)
+
+            if theta <= 0.3:
+                theta = theta / 4
+
+            self.target_pose_publisher_fun({"x": ref_x, "y": ref_y, "z": theta})
 
     #################################
     # Speed limit thread
