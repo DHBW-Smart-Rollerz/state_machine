@@ -79,8 +79,8 @@ def get_boarders(
         return 0.0, 0.0, 0.0
 
     x /= 1000  # Convert from mm to m for lane evaluation (assuming lane equations are in meters)
-    right = left_lane(x) * 1000  # Convert back to mm for boarder calculations
-    left = right_lane(x) * 1000  # Convert back to mm for boarder calculations
+    left = left_lane(x) * 1000  # Convert back to mm for boarder calculations
+    right = right_lane(x) * 1000  # Convert back to mm for boarder calculations
 
     left_boarder = left + 0.5 * RULE_CONSTANTS.lane_width
     right_boarder = right - 0.5 * RULE_CONSTANTS.lane_width
