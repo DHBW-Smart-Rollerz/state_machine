@@ -6,6 +6,8 @@ from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.states.barred_area.approach import ApproachBarredArea
+from state_machine.states.barred_area.detect_obstacle import DetectObstacleState
+from state_machine.states.drive import DRIVE_CONSTANTS
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
 
@@ -22,6 +24,7 @@ class ReadyState(BaseState):
         """Initialize the ReadyState."""
         self.TRANSITIONS = {
             "barred_area": ApproachBarredArea.NAME,
+            "barred_area_skip": DetectObstacleState.NAME,
             "canceled": "canceled",
         }
         super().__init__(debug)
@@ -46,6 +49,13 @@ class ReadyState(BaseState):
                 CONSTANTS.BARRED_AREA.START_DIST,
             ):
                 return "barred_area"
+            # Skip if barred area sign not detected within drive threshold
+            elif not check_dist_to_obj_sign(
+                self.blackboard.signs,
+                [SIGNS.BARRED_AREA],
+                DRIVE_CONSTANTS.BARRED_AREA_THRESHOLD,
+            ):
+                return "barred_area_skip"
 
             self.log_state("Barred Area: Searching for sign")
 
