@@ -88,11 +88,12 @@ S
                         <th>Distance (mm)</th>
                         <th>X (mm)</th>
                         <th>Y (mm)</th>
+                        <th>Debug (location)</th>
                     </tr>
                 </thead>
                 <tbody id="signs-list">
                     <tr>
-                        <td colspan="5">No signs detected</td>
+                        <td colspan="6">No signs detected</td>
                     </tr>
                 </tbody>
             </table>
@@ -223,6 +224,14 @@ S
             let newSignsHTML = '';
             if (data.signs && data.signs.length > 0) {
                 data.signs.forEach(sign => {
+                    const d = sign.debug || {};
+                    const debugCell = Object.keys(d).length > 0 ? `
+                        <table class="debug-table">
+                            <tr><td>bbox Y</td><td>${d.obj_y_right} … ${d.obj_y_left}</td></tr>
+                            <tr><td>borders</td><td>L ${d.left_boarder} | C ${d.center_boarder} | R ${d.right_boarder}</td></tr>
+                            <tr><td>on_left</td><td>${d.on_left_lane}</td></tr>
+                            <tr><td>on_right</td><td>${d.on_right_lane}</td></tr>
+                        </table>` : '—';
                     newSignsHTML += `
                         <tr>
                             <td>${sign.name}</td>
@@ -230,11 +239,12 @@ S
                             <td>${sign.distance}</td>
                             <td>${sign.x}</td>
                             <td>${sign.y}</td>
+                            <td>${debugCell}</td>
                         </tr>
                     `;
                 });
             } else {
-                newSignsHTML = '<tr><td colspan="5">No signs detected</td></tr>';
+                newSignsHTML = '<tr><td colspan="6">No signs detected</td></tr>';
             }
             if (currentSignsHTML !== newSignsHTML) {
                 signsList.innerHTML = newSignsHTML;

@@ -163,6 +163,7 @@ def create_app(blackboard: BlackBoard):
                     "distance": round(float(sign["distance"]), 1),
                     "x": round(float(sign["position"]["x"]), 1),
                     "y": round(float(sign["position"]["y"]), 1),
+                    "debug": sign.get("debug", {}),
                 }
                 for sign in app.blackboard.signs
             ]
@@ -264,6 +265,7 @@ async def websocket_handler(websocket, _, blackboard):
                     "distance": round(float(sign["distance"]), 1),
                     "x": round(float(sign["position"]["x"]), 1),
                     "y": round(float(sign["position"]["y"]), 1),
+                    "debug": sign.get("debug", {}),
                 }
                 for sign in (blackboard.signs or [])
             ],
