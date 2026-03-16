@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
 from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
 
 from state_machine.components.base_state import BaseState
@@ -103,10 +104,10 @@ class DrivingState(BaseState):
             #     self.TRANSITIONS["approaching_no_passing_zone"]
             # ):
             #     return "approaching_no_passing_zone"
-            # elif self._is_approaching_obstacle() and self._check_last_state(
-            #     self.TRANSITIONS["approaching_obstacle"]
-            # ):
-            #     return "approaching_obstacle"
+            elif self._is_approaching_obstacle() and self._check_last_state(
+                self.TRANSITIONS["approaching_obstacle"]
+            ):
+                return "approaching_obstacle"
             self.log_state("Driving normally")
             time.sleep(0.0001)
 

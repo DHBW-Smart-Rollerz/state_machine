@@ -1,3 +1,4 @@
+import math
 import threading
 import time
 
@@ -48,6 +49,7 @@ class StateMachine(SmartyNode):
                 "path_planning_left_subscriber": "/path_planning/target/left",
                 "path_planning_right_subscriber": "/path_planning/target/right",
                 "tracking_topic": "/tracking/state",
+                "target_pose_topic": "/path_planning/target/pose",
                 # Publisher topics
                 "lights_topic": "/lights",
                 "speed_limit_topic": "/control/velocity/target",
@@ -91,6 +93,7 @@ class StateMachine(SmartyNode):
                 "debug_state_topic": (std_msgs.msg.String, None),
                 "car_lane_topic": (std_msgs.msg.String, None),
                 "goal_lane_topic": (std_msgs.msg.String, None),
+                "target_pose_topic": (geometry_msgs.msg.Vector3, None),
             },
         )
         self._logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
@@ -104,6 +107,9 @@ class StateMachine(SmartyNode):
         # Execute the state machine
         self.speed_limit_thread = threading.Thread(
             target=self.speed_limit_fun, args=(self.blackboard,)
+        )
+        self.target_pose_thread = threading.Thread(
+            target=self.target_pose_publisher_fun_thread, args=(self.blackboard,)
         )
         self.state_machine_thread = threading.Thread(
             target=lambda x: self.sm(x), args=(self.blackboard,)
@@ -288,6 +294,73 @@ class StateMachine(SmartyNode):
         msg.data = f"{state}"
         self.debug_state_topic.publish(msg)
         return True
+
+    def target_pose_publisher_fun(self, target_pose: dict):
+        """Publish the target pose."""
+        msg = geometry_msgs.msg.Vector3()
+        msg.x = target_pose.get("x", 0.0)
+        msg.y = target_pose.get("y", 0.0)
+        msg.z = target_pose.get("z", 0.0)
+        self.target_pose_topic.publish(msg)
+        return True
+
+    #################################
+    # Target pose publisher thread
+    #################################
+
+    def _ref_point_controller(
+        self, coefficients: dict[str, np.poly1d]
+    ) -> tuple[float, float, float]:
+        """
+        Determines reference points for the controller based on the provided polynomial coefficients.
+
+        Args:
+            coefficients (list): List of coefficients representing the polynomial.
+
+        Returns:
+            tuple: Tuple containing (x, y, theta) representing the reference point coordinates and angle.
+        """
+        p = np.poly1d(coefficients[::-1])
+        x = 0.1
+        y = p(x)
+        y__temp = y
+        theta = +1 * math.atan(
+            3 * coefficients[3] * ((y__temp) ** 2)
+            + 2 * coefficients[2] * (y__temp)
+            + coefficients[1]
+        )
+        return x, y, theta
+
+    def target_pose_publisher_fun_thread(self, blackboard: BlackBoard):
+        """
+        Target pose publisher thread.
+
+        Arguments:
+            blackboard -- The blackboard containing the state information
+        """
+        while rclpy.ok():
+            time.sleep(0.1)
+            if blackboard.goal_lane == Location.LEFT_LANE:
+                target_coeffs = blackboard.lane_coefficients.get("left", None)
+            elif blackboard.goal_lane == Location.RIGHT_LANE:
+                target_coeffs = blackboard.lane_coefficients.get("right", None)
+            target_pose = {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0,
+            }
+            if any(target_coeffs.values()):
+                ref_x, ref_y, theta = self._ref_point_controller(target_coeffs)
+
+                if theta <= 0.3:
+                    theta = theta / 4
+                target_pose = {
+                    "x": ref_x,
+                    "y": ref_y,
+                    "z": theta,
+                }
+            if target_pose is not None:
+                self.target_pose_publisher_fun(target_pose)
 
     #################################
     # Speed limit thread
