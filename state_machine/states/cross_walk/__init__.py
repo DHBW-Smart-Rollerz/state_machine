@@ -2,9 +2,9 @@ class CROSSWALK_CONSTANTS:
     """CONSTANTS for the intersection state machine."""
 
     # The distance to the object in front of the car when intersecting
-    START_DIST = 600  # mm
+    START_DIST = 300  # mm
     PEDESTRIAN_DIST = 1200  # mm
-    APPROACH_DISTANCE = 500  # mm
+    APPROACH_DISTANCE = 300  # mm
 
     # The time in seconds until the ready state is canceled
     READY_TIMEOUT = 10
