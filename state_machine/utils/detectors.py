@@ -188,8 +188,8 @@ def get_object_location_debug(
         left_line, right_line, cx
     )
 
-    on_left_lane = obj_y_left > center_boarder and obj_y_right < left_boarder
-    on_right_lane = obj_y_left > right_boarder and obj_y_right < center_boarder
+    on_left_lane = bool(obj_y_left > center_boarder and obj_y_right < left_boarder)
+    on_right_lane = bool(obj_y_left > right_boarder and obj_y_right < center_boarder)
 
     debug = {
         "cx": round(float(cx), 1),
