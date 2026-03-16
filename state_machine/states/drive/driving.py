@@ -100,10 +100,10 @@ class DrivingState(BaseState):
             #     self.TRANSITIONS["approaching_express_way"]
             # ):
             #     return "approaching_express_way"
-            # elif self._is_approaching_no_passing_zone() and self._check_last_state(
-            #     self.TRANSITIONS["approaching_no_passing_zone"]
-            # ):
-            #     return "approaching_no_passing_zone"
+            elif self._is_approaching_no_passing_zone() and self._check_last_state(
+                self.TRANSITIONS["approaching_no_passing_zone"]
+            ):
+                return "approaching_no_passing_zone"
             elif self._is_approaching_obstacle() and self._check_last_state(
                 self.TRANSITIONS["approaching_obstacle"]
             ):
