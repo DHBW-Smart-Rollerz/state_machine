@@ -148,6 +148,7 @@ def create_app(blackboard: BlackBoard):
                     "x": round(float(obj["position"]["x"]), 1),
                     "y": round(float(obj["position"]["y"]), 1),
                     "width": round(float(obj.get("width", 200)), 1),
+                    "debug": obj.get("debug", {}),
                 }
                 for obj in app.blackboard.objects
             ]
@@ -251,6 +252,7 @@ async def websocket_handler(websocket, _, blackboard):
                     "x": round(float(obj["position"]["x"]), 1),
                     "y": round(float(obj["position"]["y"]), 1),
                     "width": round(float(obj.get("width", 200)), 1),
+                    "debug": obj.get("debug", {}),
                 }
                 for obj in (blackboard.objects or [])
             ],

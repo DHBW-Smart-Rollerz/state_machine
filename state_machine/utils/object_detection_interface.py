@@ -4,7 +4,7 @@ import state_msgs.msg
 import yasmin
 from smarty_utils.enums import OBJECTS, SIGNS
 
-from state_machine.utils.detectors import get_object_location
+from state_machine.utils.detectors import get_object_location_debug
 
 
 def _calc_dist(obj_position: dict) -> float:
@@ -37,7 +37,7 @@ def create_obj_sign(msg: state_msgs.msg.State, parent: any) -> list[dict]:
         obj_position = {"x": obj.position_x, "y": obj.position_y}
         left_lane = parent.blackboard.lane_coefficients.get("left", None)
         right_lane = parent.blackboard.lane_coefficients.get("right", None)
-        obj_location = get_object_location(obj, left_lane, right_lane)
+        obj_location, obj_debug = get_object_location_debug(obj, left_lane, right_lane)
         obj_dist = _calc_dist(obj_position)
         obj_name = (
             OBJECTS(int(obj.class_id))
@@ -55,6 +55,7 @@ def create_obj_sign(msg: state_msgs.msg.State, parent: any) -> list[dict]:
                 "location": obj_location,
                 "name": obj_name,
                 "width": float(obj.width),
+                "debug": obj_debug,
                 "timestamp": parent.get_clock().now().nanoseconds,
             }
         )

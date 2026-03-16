@@ -69,11 +69,12 @@ S
                         <th>Distance (mm)</th>
                         <th>X (mm)</th>
                         <th>Y (mm)</th>
+                        <th>Debug (location)</th>
                     </tr>
                 </thead>
                 <tbody id="objects-list">
                     <tr>
-                        <td colspan="5">No objects detected</td>
+                        <td colspan="6">No objects detected</td>
                     </tr>
                 </tbody>
             </table>
@@ -190,6 +191,14 @@ S
             let newObjectsHTML = '';
             if (data.objects && data.objects.length > 0) {
                 data.objects.forEach(obj => {
+                    const d = obj.debug || {};
+                    const debugCell = Object.keys(d).length > 0 ? `
+                        <table class="debug-table">
+                            <tr><td>bbox Y</td><td>${d.obj_y_right} … ${d.obj_y_left}</td></tr>
+                            <tr><td>borders</td><td>L ${d.left_boarder} | C ${d.center_boarder} | R ${d.right_boarder}</td></tr>
+                            <tr><td>on_left</td><td>${d.on_left_lane}</td></tr>
+                            <tr><td>on_right</td><td>${d.on_right_lane}</td></tr>
+                        </table>` : '—';
                     newObjectsHTML += `
                         <tr>
                             <td>${obj.name}</td>
@@ -197,11 +206,12 @@ S
                             <td>${obj.distance}</td>
                             <td>${obj.x}</td>
                             <td>${obj.y}</td>
+                            <td>${debugCell}</td>
                         </tr>
                     `;
                 });
             } else {
-                newObjectsHTML = '<tr><td colspan="5">No objects detected</td></tr>';
+                newObjectsHTML = '<tr><td colspan="6">No objects detected</td></tr>';
             }
             if (currentObjectsHTML !== newObjectsHTML) {
                 objectsList.innerHTML = newObjectsHTML;

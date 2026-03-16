@@ -157,43 +157,62 @@ def get_object_location(
     Returns:
         Location -- LEFT, LEFT_LANE, RIGHT_LANE, RIGHT, or UNKNOWN
     """
+    location, _ = get_object_location_debug(object, left_line, right_line)
+    return location
+
+
+def get_object_location_debug(
+    object: state_msgs.msg.TrackedObject, left_line: any, right_line: any
+) -> tuple[Location, dict]:
+    """
+    Like get_object_location but also returns a dict of intermediate debug values.
+
+    Returns:
+        (Location, debug_dict) where debug_dict contains:
+            cx, cy, half_w,
+            obj_y_left, obj_y_right,
+            left_boarder, center_boarder, right_boarder,
+            on_left_lane, on_right_lane
+    """
     if left_line is None or right_line is None:
-        return Location.UNKNOWN
+        return Location.UNKNOWN, {}
 
     cx = object.position_x
     cy = object.position_y
     half_w = object.width / 2
 
-    # Bounding-box Y edges (left edge has higher Y because Y goes left)
-    obj_y_left = cy - half_w  # leftmost Y of the bounding box
-    obj_y_right = cy + half_w  # rightmost Y of the bounding box
+    obj_y_left = cy + half_w
+    obj_y_right = cy - half_w
 
-    # Evaluate lane borders at the object's centre X
     left_boarder, center_boarder, right_boarder = get_boarders(
         left_line, right_line, cx
     )
-    # left_boarder  >= center_boarder >= right_boarder  (Y axis points left)
 
-    # Check overlap with each zone using the bounding-box edges:
-    #   LEFT_LANE  zone: [left_boarder, center_boarder]
-    #   RIGHT_LANE zone: [center_boarder,  right_boarder]
-    # Overlap exists when obj_y_left > zone_lower AND obj_y_right < zone_upper
-    on_left_lane = obj_y_left > left_boarder and obj_y_right < center_boarder
-    on_right_lane = obj_y_left > center_boarder and obj_y_right < right_boarder
+    on_left_lane = obj_y_left > center_boarder and obj_y_right < left_boarder
+    on_right_lane = obj_y_left > right_boarder and obj_y_right < center_boarder
+
+    debug = {
+        "cx": round(float(cx), 1),
+        "cy": round(float(cy), 1),
+        "half_w": round(float(half_w), 1),
+        "obj_y_left": round(float(obj_y_left), 1),
+        "obj_y_right": round(float(obj_y_right), 1),
+        "left_boarder": round(float(left_boarder), 1),
+        "center_boarder": round(float(center_boarder), 1),
+        "right_boarder": round(float(right_boarder), 1),
+        "on_left_lane": on_left_lane,
+        "on_right_lane": on_right_lane,
+    }
 
     if on_left_lane and on_right_lane:
-        # Box spans both lanes – use the centre Y to decide
-        if cy <= center_boarder:
-            return Location.LEFT_LANE
-        else:
-            return Location.RIGHT_LANE
+        location = Location.LEFT_LANE if cy >= center_boarder else Location.RIGHT_LANE
     elif on_left_lane:
-        return Location.LEFT_LANE
+        location = Location.LEFT_LANE
     elif on_right_lane:
-        return Location.RIGHT_LANE
-    elif cy <= left_boarder:
-        # Object is fully to the left of the road
-        return Location.LEFT
+        location = Location.RIGHT_LANE
+    elif cy >= left_boarder:
+        location = Location.LEFT
     else:
-        # Object is fully to the right of the road
-        return Location.RIGHT
+        location = Location.RIGHT
+
+    return location, debug

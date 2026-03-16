@@ -149,3 +149,32 @@ table tbody tr:nth-child(even) {
         background-color: transparent;
     }
 }
+
+/* Debug sub-table inside the objects table */
+.debug-table {
+    width: auto;
+    margin: 0;
+    box-shadow: none;
+    border-radius: 0;
+    font-size: 0.75rem;
+    border-collapse: collapse;
+}
+
+.debug-table td {
+    padding: 2px 6px;
+    border-bottom: 1px solid #e0e0e0;
+    white-space: nowrap;
+}
+
+.debug-table td:first-child {
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    background: transparent;
+    width: 60px;
+}
+
+.debug-table tr:hover {
+    background-color: transparent;
+}
