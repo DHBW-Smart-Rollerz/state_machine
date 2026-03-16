@@ -92,10 +92,10 @@ class DrivingState(BaseState):
             #     self.TRANSITIONS["approaching_barred_area"]
             # ):
             #     return "approaching_barred_area"
-            # elif self._is_approaching_crosswalk() and self._check_last_state(
-            #     self.TRANSITIONS["approaching_crosswalk"]
-            # ):
-            #     return "approaching_crosswalk"
+            elif self._is_approaching_crosswalk() and self._check_last_state(
+                self.TRANSITIONS["approaching_crosswalk"]
+            ):
+                return "approaching_crosswalk"
             # elif self._is_approaching_express_way() and self._check_last_state(
             #     self.TRANSITIONS["approaching_express_way"]
             # ):

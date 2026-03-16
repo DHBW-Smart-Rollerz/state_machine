@@ -9,7 +9,7 @@ class OVERTAKE_CONSTANTS:
 
     # The time in seconds to stay in the lane after overtaking
     # STAY_TIME = 5  # s
-    STAY_DISTANCE = 1500  # mm
+    STAY_DISTANCE = 200  # mm
 
     # The maximum speed in m/s
     MAX_SPEED = 0.2  # m/s
