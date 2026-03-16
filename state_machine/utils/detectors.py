@@ -165,8 +165,8 @@ def get_object_location(
     half_w = object.width / 2
 
     # Bounding-box Y edges (left edge has higher Y because Y goes left)
-    obj_y_left = cy + half_w  # leftmost Y of the bounding box
-    obj_y_right = cy - half_w  # rightmost Y of the bounding box
+    obj_y_left = cy - half_w  # leftmost Y of the bounding box
+    obj_y_right = cy + half_w  # rightmost Y of the bounding box
 
     # Evaluate lane borders at the object's centre X
     left_boarder, center_boarder, right_boarder = get_boarders(
@@ -175,15 +175,15 @@ def get_object_location(
     # left_boarder  >= center_boarder >= right_boarder  (Y axis points left)
 
     # Check overlap with each zone using the bounding-box edges:
-    #   LEFT_LANE  zone: [center_boarder, left_boarder]
-    #   RIGHT_LANE zone: [right_boarder,  center_boarder]
+    #   LEFT_LANE  zone: [left_boarder, center_boarder]
+    #   RIGHT_LANE zone: [center_boarder,  right_boarder]
     # Overlap exists when obj_y_left > zone_lower AND obj_y_right < zone_upper
-    on_left_lane = obj_y_left > center_boarder and obj_y_right < left_boarder
-    on_right_lane = obj_y_left > right_boarder and obj_y_right < center_boarder
+    on_left_lane = obj_y_left > left_boarder and obj_y_right < center_boarder
+    on_right_lane = obj_y_left > center_boarder and obj_y_right < right_boarder
 
     if on_left_lane and on_right_lane:
         # Box spans both lanes – use the centre Y to decide
-        if cy >= center_boarder:
+        if cy <= center_boarder:
             return Location.LEFT_LANE
         else:
             return Location.RIGHT_LANE
@@ -191,7 +191,7 @@ def get_object_location(
         return Location.LEFT_LANE
     elif on_right_lane:
         return Location.RIGHT_LANE
-    elif cy >= left_boarder:
+    elif cy <= left_boarder:
         # Object is fully to the left of the road
         return Location.LEFT
     else:
