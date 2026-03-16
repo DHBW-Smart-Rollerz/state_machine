@@ -26,7 +26,7 @@ from state_machine.states.cross_walk.crosswalk import CrosswalkStateMachine
 from state_machine.states.drive.driving import DrivingState
 from state_machine.states.intersection.express_way import ExpressWayState
 from state_machine.states.intersection.intersection import IntersectionStateMachine
-from state_machine.states.no_passing_zone import NoPassingZoneState
+from state_machine.states.no_passing_zone.no_passing_zone import NoPassingZoneState
 from state_machine.states.overtake.overtaking import OvertakingStateMachine
 from state_machine.states.parking import ParkingState
 from state_machine.states.start_box.startbox import StartBoxStateMachine

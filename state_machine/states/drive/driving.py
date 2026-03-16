@@ -36,7 +36,9 @@ class DrivingState(BaseState):
         from state_machine.states.intersection.intersection import (
             IntersectionStateMachine,
         )
-        from state_machine.states.no_passing_zone import NoPassingZoneState
+        from state_machine.states.no_passing_zone.no_passing_zone import (
+            NoPassingZoneState,
+        )
         from state_machine.states.overtake.overtaking import OvertakingStateMachine
         from state_machine.states.parking import ParkingState
 
@@ -88,10 +90,10 @@ class DrivingState(BaseState):
             #     self.TRANSITIONS["approaching_parking_area"]
             # ):
             #     return "approaching_parking_area"
-            # elif self._is_approaching_barred_area() and self._check_last_state(
-            #     self.TRANSITIONS["approaching_barred_area"]
-            # ):
-            #     return "approaching_barred_area"
+            elif self._is_approaching_barred_area() and self._check_last_state(
+                self.TRANSITIONS["approaching_barred_area"]
+            ):
+                return "approaching_barred_area"
             elif self._is_approaching_crosswalk() and self._check_last_state(
                 self.TRANSITIONS["approaching_crosswalk"]
             ):
