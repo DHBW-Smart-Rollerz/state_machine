@@ -112,7 +112,7 @@ class StateMachine(SmartyNode):
             target=self.target_pose_publisher_fun_thread, args=(self.blackboard,)
         )
         self.state_machine_thread = threading.Thread(
-            target=lambda x: self.sm(x), args=(self.blackboard,)
+            target=self._run_sm, args=(self.blackboard,)
         )
         self.speed_limit_thread.daemon = True
         self.target_pose_thread.daemon = True
@@ -200,8 +200,14 @@ class StateMachine(SmartyNode):
         ]
         [self._add_state(state_class) for state_class in state_classes]
 
-        if self._debug:
-            yasmin_viewer.YasminViewerPub("state_machine", self.sm)
+        # if self._debug:
+        #     yasmin_viewer.YasminViewerPub("state_machine", self.sm)
+
+    def _run_sm(self, custom_bb: BlackBoard):
+        """Wrap the custom BlackBoard into a yasmin Blackboard and run the state machine."""
+        yasmin_bb = yasmin.Blackboard()
+        yasmin_bb["bb"] = custom_bb
+        self.sm(yasmin_bb)
 
     def _add_state(self, state_class: yasmin.State):
         """

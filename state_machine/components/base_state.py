@@ -35,31 +35,32 @@ class BaseState(yasmin.State):
 
     def local_execute(
         self,
-        blackboard: BlackBoard,
+        blackboard: yasmin.Blackboard,
         update_black_board: bool = True,
     ) -> str:
         """
         Execute the state.
 
         Arguments:
-            blackboard -- Blackboard object
+            blackboard -- yasmin Blackboard wrapper containing the custom BlackBoard at key "bb"
         """
+        bb: BlackBoard = blackboard["bb"]
         if update_black_board:
-            blackboard.update(self.STATE_DESCRIPTION)
-            blackboard._current_state = self.NAME
+            bb.update(self.STATE_DESCRIPTION)
+            bb._current_state = self.NAME
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
-        self.blackboard = blackboard
+        self.blackboard = bb
         time.sleep(0.0001)
 
     def execute(
         self,
-        blackboard: BlackBoard,
+        blackboard: yasmin.Blackboard,
     ):
         """
         Execute the state.
 
         Arguments:
-            blackboard -- Blackboard object
+            blackboard -- yasmin Blackboard wrapper containing the custom BlackBoard at key "bb"
         """
         output = self.local_execute(blackboard)
         self.set_last_state()

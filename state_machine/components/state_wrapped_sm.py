@@ -56,10 +56,11 @@ class StateWrappedStateMachine(BaseState):
         """
         super().local_execute(blackboard, update_black_board=False)
         if self._first_call:
+            bb = self.blackboard  # save before reset() clears it
             self.reset()
+            self.blackboard = bb  # restore after reset
             if timeout_time > 0:
                 self.start_timeout_timer(timeout_time)
-            self.blackboard = blackboard
             self._first_call = False
             self._start_sm()
 
@@ -98,7 +99,9 @@ class StateWrappedStateMachine(BaseState):
             raise ValueError("Blackboard is not set")
 
         self._run_sm = True
-        self._outcome = self.sm(self.blackboard)
+        yasmin_bb = yasmin.Blackboard()
+        yasmin_bb["bb"] = self.blackboard
+        self._outcome = self.sm(yasmin_bb)
         yasmin.YASMIN_LOG_WARN("Internal State Machine finished!")
         self._run_sm = False
 
@@ -120,8 +123,8 @@ class StateWrappedStateMachine(BaseState):
         self.sm = yasmin.StateMachine(outcomes=["done", "canceled"])
         [self._add_state(state_class) for state_class in state_classes]
 
-        if self.debug:
-            yasmin_viewer.YasminViewerPub(f"{self.NAME}_state_machine", self.sm)
+        # if self.debug:
+        #     yasmin_viewer.YasminViewerPub(f"{self.NAME}_state_machine", self.sm)
 
     def _add_state(self, state_class: yasmin.State):
         """

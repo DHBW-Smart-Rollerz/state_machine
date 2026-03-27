@@ -33,7 +33,7 @@ class Approach(BaseState):
             str -- The next state to transition to
         """
         super().execute(blackboard)
-        start_time = blackboard.last_timestamp
+        start_time = self.blackboard.last_timestamp
 
         time_to_wait = (self.APPROACH_DISTANCE / 1000) / self.blackboard.max_speed
         while time.perf_counter() - start_time <= time_to_wait:

@@ -36,7 +36,7 @@ class GiveWayState(BaseState):
             str -- The next state to transition to
         """
         super().execute(blackboard)
-        start_time = blackboard.last_timestamp
+        start_time = self.blackboard.last_timestamp
 
         while (
             time.perf_counter() - start_time

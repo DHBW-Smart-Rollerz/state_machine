@@ -44,7 +44,7 @@ class ReadyState(BaseState):
         """
         super().local_execute(blackboard)
 
-        while self._is_start_box_open(blackboard):
+        while self._is_start_box_open(self.blackboard):
             self.log_state("Start Box: Waiting for start box to be open")
             time.sleep(0.0001)
         return "start_box_open"
