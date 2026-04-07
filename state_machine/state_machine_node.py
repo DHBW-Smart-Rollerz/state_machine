@@ -214,7 +214,9 @@ class StateMachine(SmartyNode):
 
     def _run_sm(self, custom_bb: BlackBoard):
         """Wrap the custom BlackBoard into a yasmin Blackboard and run the state machine."""
-        self.sm(custom_bb)
+        bb = yasmin.Blackboard()
+        bb["custom_bb"] = custom_bb
+        self.sm(bb)
 
     def _add_state(self, state_class: yasmin.State):
         """
