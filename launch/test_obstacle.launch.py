@@ -30,7 +30,6 @@ def generate_launch_description():
     declare_debug = DeclareLaunchArgument(
         "debug", default_value="False", description="Enable debug mode"
     )
-
     # ── Camera group (launched immediately) ───────────────────────────────────
     vimbax = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(

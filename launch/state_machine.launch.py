@@ -17,6 +17,7 @@ def generate_launch_description():
     """
     python_executable = os.getenv("PYTHON_EXECUTABLE", "/usr/bin/python3")
     debug = LaunchConfiguration("debug")
+    test_mode = LaunchConfiguration("test_mode")
     params_file = LaunchConfiguration("params_file")
 
     return LaunchDescription(
@@ -39,7 +40,7 @@ def generate_launch_description():
                 executable="state_machine_node",
                 name="state_machine",
                 parameters=[
-                    {"debug": debug},
+                    {"debug": debug, "test_mode": test_mode},
                     params_file,
                 ],
                 prefix=[python_executable],

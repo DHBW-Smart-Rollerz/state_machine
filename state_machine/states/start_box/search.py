@@ -2,7 +2,14 @@ import copy
 import time
 
 import yasmin
-from smarty_utils.enums import SIGNS, Light, Location, Nodes, NodeState
+from smarty_utils.enums import (
+    SIGNS,
+    Light,
+    Location,
+    Nodes,
+    NodeState,
+    StateMachineTestModes,
+)
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import BlackBoard, StateDescription
@@ -55,8 +62,10 @@ class SearchState(BaseState):
         """
         super().local_execute(blackboard)
 
-        while (
-            not self._is_start_box_detected(self.blackboard) and False
+        while not self._is_start_box_detected(
+            self.blackboard
+        ) and not StateMachineTestModes.use(
+            self.blackboard.test_mode, StateMachineTestModes.NO_STARTBOX
         ):  # TODO: Remove False to enable search
             self.log_state("Start Box: Waiting for stop sign to be detected")
             time.sleep(0.0001)

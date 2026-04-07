@@ -3,7 +3,15 @@ import time
 
 import numpy as np
 import yasmin
-from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
+from smarty_utils.enums import (
+    OBJECTS,
+    SIGNS,
+    Light,
+    Location,
+    Nodes,
+    NodeState,
+    StateMachineTestModes,
+)
 
 from state_machine.components.state_parameter import (
     ParameterStateParameter,
@@ -53,6 +61,7 @@ class BlackBoard:
         last_timestamp: StateParameter,
         node_states: dict[Nodes, ParameterStateParameter],
         remote_state: StateParameter,
+        test_mode: int,
     ):
         """
         Initialize the state description.
@@ -87,6 +96,7 @@ class BlackBoard:
         self._has_speed_limit = False
         self._free_drive = False
         self._other_parameters = {}
+        self._test_mode = test_mode
 
     def update(self, state_description: StateDescription):
         """
@@ -287,6 +297,12 @@ class BlackBoard:
         """Set the remote state."""
         with self.__lock:
             self._remote_state.value = state
+
+    @property
+    def test_mode(self) -> StateMachineTestModes:
+        """Get the test mode."""
+        with self.__lock:
+            return self._test_mode
 
     def __getattr__(self, name: str):
         """Get unknown attributes from other_parameters dict."""

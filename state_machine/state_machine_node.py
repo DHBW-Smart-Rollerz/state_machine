@@ -1,3 +1,4 @@
+import enum
 import math
 import threading
 import time
@@ -10,7 +11,15 @@ import std_msgs.msg
 import yasmin
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
-from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
+from smarty_utils.enums import (
+    OBJECTS,
+    SIGNS,
+    Light,
+    Location,
+    Nodes,
+    NodeState,
+    StateMachineTestModes,
+)
 from smarty_utils.smarty_node import SmartyNode
 
 from state_machine.components.state_description import BlackBoard
@@ -37,7 +46,9 @@ from state_machine.webapp.app import create_and_run_flask_app
 class StateMachine(SmartyNode):
     """State Machine."""
 
-    def __init__(self, debug: bool = False):
+    def __init__(
+        self, debug: bool = False, test_mode: int = StateMachineTestModes.NORMAL.value
+    ):
         """Initialize the state machine."""
         super().__init__(
             "state_machine_node",
@@ -58,6 +69,7 @@ class StateMachine(SmartyNode):
                 "drive_mode_topic": "/remote/drive_mode",
                 # Parameters
                 "debug": debug,
+                "test_mode": test_mode,
             },
             subscribed_topics={
                 "remote_state_subscriber": (
@@ -180,6 +192,7 @@ class StateMachine(SmartyNode):
             last_timestamp,
             node_states,
             remote_state,
+            int(self.get_parameter("test_mode").value),
         )
 
     def init_state_machine(self):
