@@ -12,7 +12,7 @@ from smarty_utils.enums import (
 )
 
 from state_machine.components.base_state import BaseState
-from state_machine.components.state_description import BlackBoard, StateDescription
+from state_machine.components.state_description import StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.states.start_box.ready import ReadyState
 from state_machine.utils import detectors
@@ -50,21 +50,11 @@ class SearchState(BaseState):
         self._first_found_time = -1
         self._counter = 0
 
-    def local_execute(self, blackboard: BlackBoard) -> str:
-        """
-        Executes the SearchState.
+    def local_execute(self) -> str:
+        """Executes the SearchState."""
+        super().local_execute()
 
-        Arguments:
-            blackboard -- Blackboard object
-
-        Returns:
-            str -- The outcome of the state
-        """
-        super().local_execute(blackboard)
-
-        while not self._is_start_box_detected(
-            self.blackboard
-        ) and not StateMachineTestModes.use(
+        while not self._is_start_box_detected() and not StateMachineTestModes.use(
             self.blackboard.test_mode, StateMachineTestModes.NO_STARTBOX
         ):  # TODO: Remove False to enable search
             self.log_state("Start Box: Waiting for stop sign to be detected")
@@ -88,19 +78,16 @@ class SearchState(BaseState):
         current_time = time.perf_counter()
         return current_time - self._init_time > timeout
 
-    def _is_start_box_detected(self, blackboard: BlackBoard) -> bool:
+    def _is_start_box_detected(self) -> bool:
         """
         Check if the start box is detected for more than 3 seconds, allowing brief interruptions.
-
-        Arguments:
-            blackboard -- Blackboard object
 
         Returns:
             bool -- True if the start box is detected for the required duration, False otherwise
         """
         # return True
         # Stop sign in sign list
-        signs: list[dict] = copy.copy(blackboard.signs)
+        signs: list[dict] = copy.copy(self.blackboard.signs)
 
         sign_dist_thresh = CONSTANTS.START_BOX.DISTANCE_THRESH
         ready_time_thresh = CONSTANTS.START_BOX.READY_TIME_THRESH

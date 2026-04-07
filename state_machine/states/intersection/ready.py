@@ -3,7 +3,7 @@ import time
 from smarty_utils.enums import SIGNS, Light
 
 from state_machine.components.base_state import BaseState
-from state_machine.components.state_description import BlackBoard, StateDescription
+from state_machine.components.state_description import StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.states.drive import DRIVE_CONSTANTS
 from state_machine.states.intersection.approach import ApproachGiveWay, ApproachStop
@@ -28,17 +28,9 @@ class ReadyState(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().execute(blackboard)
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
         start = time.perf_counter()
 
         while time.perf_counter() - start < CONSTANTS.INTERSECTION.READY_TIMEOUT:

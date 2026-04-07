@@ -64,17 +64,9 @@ class DrivingState(BaseState):
         """
         return []
 
-    def local_execute(self, blackboard: BlackBoard) -> str:
-        """
-        Execute the DrivingState.
-
-        Arguments:
-            blackboard -- Blackboard object
-
-        Returns:
-            str -- name of the next state
-        """
-        super().local_execute(blackboard)
+    def local_execute(self) -> str:
+        """Execute the DrivingState."""
+        super().local_execute()
 
         while True:
             if self.blackboard.remote_state == 1:  # Free drive

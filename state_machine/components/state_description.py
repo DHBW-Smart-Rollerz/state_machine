@@ -48,20 +48,29 @@ class StateDescription:
 class BlackBoard:
     """Describes the state including maximal speed, lane, and other parameters."""
 
+    instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """Generate a singleton instance of the blackboard."""
+        if cls.instance is None:
+            cls.instance = super(BlackBoard, cls).__new__(cls)
+            cls.instance.__init__(*args, **kwargs)
+        return cls.instance
+
     def __init__(
         self,
-        light_configuration: TopicStateParameter,
-        max_speed: TopicStateParameter,
-        goal_lane: TopicStateParameter,
-        car_lane: TopicStateParameter,
-        objects: StateParameter,
-        signs: StateParameter,
-        lane_coefficients: StateParameter,
-        last_state: TopicStateParameter,
-        last_timestamp: StateParameter,
-        node_states: dict[Nodes, ParameterStateParameter],
-        remote_state: StateParameter,
-        test_mode: int,
+        light_configuration: TopicStateParameter = None,
+        max_speed: TopicStateParameter = None,
+        goal_lane: TopicStateParameter = None,
+        car_lane: TopicStateParameter = None,
+        objects: StateParameter = None,
+        signs: StateParameter = None,
+        lane_coefficients: StateParameter = None,
+        last_state: TopicStateParameter = None,
+        last_timestamp: StateParameter = None,
+        node_states: dict[Nodes, ParameterStateParameter] = {},
+        remote_state: StateParameter = None,
+        test_mode: int = 0,
     ):
         """
         Initialize the state description.
@@ -79,7 +88,41 @@ class BlackBoard:
             node_states -- Node states
             remote_state -- Remote state
         """
+        if hasattr(self, "_initialized") and self._initialized:
+            return
+        if any(
+            param is None
+            for param in [
+                light_configuration,
+                max_speed,
+                goal_lane,
+                car_lane,
+                objects,
+                signs,
+                lane_coefficients,
+                last_state,
+                last_timestamp,
+                remote_state,
+            ]
+        ):
+            raise ValueError(
+                "All parameters must be provided for BlackBoard initialization"
+            )
+        self._initialized = True
         self.__lock = threading.Lock()
+        self._initial_state = [
+            light_configuration.value,
+            max_speed.value,
+            goal_lane.value,
+            car_lane.value,
+            objects.value,
+            signs.value,
+            lane_coefficients.value,
+            last_state.value,
+            last_timestamp.value,
+            remote_state.value,
+            node_states.copy(),
+        ]
         self._light_configuration = light_configuration
         self._max_speed = max_speed
         self._goal_lane = goal_lane
@@ -121,6 +164,35 @@ class BlackBoard:
         with self.__lock:
             self._has_speed_limit = False
             self._speed_limit = np.inf
+
+    def reset(self):
+        """Reset the blackboard to default values."""
+        with self.__lock:
+            for param, value in zip(
+                [
+                    self._light_configuration,
+                    self._max_speed,
+                    self._goal_lane,
+                    self._car_lane,
+                    self._objects,
+                    self._signs,
+                    self._lane_coefficients,
+                    self._last_state,
+                    self._last_timestamp,
+                    self._remote_state,
+                    self._node_states,
+                ],
+                self._initial_state,
+            ):
+                if isinstance(param, dict):
+                    param = {key: p.value for key, p in param.items()}
+                else:
+                    param.value = value
+            self._current_state = "No State"
+            self._speed_limit = np.inf
+            self._has_speed_limit = False
+            self._free_drive = False
+            self._other_parameters = {}
 
     @property
     def light_configuration(self) -> Light:
@@ -303,6 +375,12 @@ class BlackBoard:
         """Get the test mode."""
         with self.__lock:
             return self._test_mode
+
+    @property
+    def has_speed_limit(self) -> bool:
+        """Check if a speed limit is currently active."""
+        with self.__lock:
+            return self._has_speed_limit
 
     def __getattr__(self, name: str):
         """Get unknown attributes from other_parameters dict."""

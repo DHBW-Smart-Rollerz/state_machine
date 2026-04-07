@@ -27,17 +27,9 @@ class WaitState(BaseState):
         super().__init__(debug)
         self._last_closest_dist = np.inf
 
-    def execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().execute(blackboard)
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
 
         while self._last_closest_dist == np.inf:
             self._last_closest_dist = dist_to_obj_sign(

@@ -26,17 +26,9 @@ class ReadyState(BaseState):
         }
         super().__init__(debug)
 
-    def local_execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().local_execute(blackboard)
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
 
         while True:
             if check_dist_to_obj_sign(

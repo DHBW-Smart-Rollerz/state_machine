@@ -34,7 +34,7 @@ class NoPassingZoneState(BaseState):
         }
         super().__init__(debug)
 
-    def local_execute(self, blackboard: BlackBoard) -> str:
+    def local_execute(self) -> str:
         """
         Execute the no-passing zone state.
 
@@ -42,13 +42,10 @@ class NoPassingZoneState(BaseState):
         Stays in the right lane at all times (no lane changes).
         Exits as soon as a NO_OVERTAKING_LIFTED sign is seen or the timeout fires.
 
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
         Returns:
             str -- Outcome: always "done" (back to DrivingState)
         """
-        super().local_execute(blackboard)
+        super().local_execute()
 
         start_time = time.perf_counter()
 

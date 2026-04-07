@@ -27,10 +27,8 @@ class CrosswalkStateMachine(StateWrappedStateMachine):
 
         super().__init__(state_classes, debug)
 
-    def local_execute(self, blackboard: BlackBoard):
+    def local_execute(self):
         """Execute the state machine."""
         if self._first_call:
-            blackboard["start_location"] = copy.copy(blackboard.car_lane)
-        return super().local_execute(
-            blackboard, timeout_time=CONSTANTS.CROSS_WALK.TIMEOUT
-        )
+            self.blackboard["start_location"] = copy.copy(self.blackboard.car_lane)
+        return super().local_execute(timeout_time=CONSTANTS.CROSS_WALK.TIMEOUT)

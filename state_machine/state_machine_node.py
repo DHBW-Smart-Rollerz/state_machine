@@ -116,15 +116,11 @@ class StateMachine(SmartyNode):
         self.init_state_machine()
 
         # Execute the state machine
-        self.speed_limit_thread = threading.Thread(
-            target=self.speed_limit_fun, args=(self.blackboard,)
-        )
+        self.speed_limit_thread = threading.Thread(target=self.speed_limit_fun)
         self.target_pose_thread = threading.Thread(
-            target=self.target_pose_publisher_fun_thread, args=(self.blackboard,)
+            target=self.target_pose_publisher_fun_thread
         )
-        self.state_machine_thread = threading.Thread(
-            target=self._run_sm, args=(self.blackboard,)
-        )
+        self.state_machine_thread = threading.Thread(target=self._run_sm)
         self.speed_limit_thread.daemon = True
         self.target_pose_thread.daemon = True
         self.state_machine_thread.daemon = True
@@ -212,11 +208,9 @@ class StateMachine(SmartyNode):
         ]
         [self._add_state(state_class) for state_class in state_classes]
 
-    def _run_sm(self, custom_bb: BlackBoard):
+    def _run_sm(self):
         """Wrap the custom BlackBoard into a yasmin Blackboard and run the state machine."""
-        bb = yasmin.Blackboard()
-        bb["custom_bb"] = custom_bb
-        self.sm(bb)
+        self.sm()
 
     def _add_state(self, state_class: yasmin.State):
         """
@@ -345,19 +339,14 @@ class StateMachine(SmartyNode):
         theta = math.atan(slope)
         return x, y, theta
 
-    def target_pose_publisher_fun_thread(self, blackboard: BlackBoard):
-        """
-        Target pose publisher thread.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-        """
+    def target_pose_publisher_fun_thread(self):
+        """Target pose publisher thread."""
         while rclpy.ok():
             time.sleep(0.1)
-            if blackboard.goal_lane in (Location.LEFT_LANE, Location.LEFT):
-                target_coeffs = blackboard.lane_coefficients.get("left", None)
-            elif blackboard.goal_lane in (Location.RIGHT_LANE, Location.RIGHT):
-                target_coeffs = blackboard.lane_coefficients.get("right", None)
+            if self.blackboard.goal_lane in (Location.LEFT_LANE, Location.LEFT):
+                target_coeffs = self.blackboard.lane_coefficients.get("left", None)
+            elif self.blackboard.goal_lane in (Location.RIGHT_LANE, Location.RIGHT):
+                target_coeffs = self.blackboard.lane_coefficients.get("right", None)
             else:
                 target_coeffs = None
 
@@ -375,30 +364,24 @@ class StateMachine(SmartyNode):
     # Speed limit thread
     #################################
 
-    def speed_limit_fun(self, blackboard: BlackBoard):
-        """
-        Speed limit thread.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-        """
+    def speed_limit_fun(self):
+        """Speed limit thread."""
         while rclpy.ok():
             time.sleep(0.001)
-            if not blackboard._has_speed_limit and self._check_speed_limit(
-                blackboard, lifted=False
+            if not self.blackboard.has_speed_limit and self._check_speed_limit(
+                lifted=False
             ):
-                blackboard.speed_limit = CONSTANTS.SPEED_LIMIT_30
-            elif blackboard._has_speed_limit and self._check_speed_limit(
-                blackboard, lifted=True
+                self.blackboard.speed_limit = CONSTANTS.SPEED_LIMIT_30
+            elif self.blackboard.has_speed_limit and self._check_speed_limit(
+                lifted=True
             ):
-                blackboard.reset_speed_limit()
+                self.blackboard.reset_speed_limit()
 
-    def _check_speed_limit(self, blackboard: BlackBoard, lifted: bool) -> bool:
+    def _check_speed_limit(self, lifted: bool) -> bool:
         """
         Check if the speed limit is exceeded.
 
         Arguments:
-            blackboard -- The blackboard containing the state information
             lifted -- True if the speed limit is lifted, False otherwise
 
         Returns:
@@ -406,14 +389,14 @@ class StateMachine(SmartyNode):
         """
         if lifted:
             return check_dist_to_obj_sign(
-                blackboard.signs,
+                self.blackboard.signs,
                 [SIGNS.SPEED_LIMIT_30_LIFTED],
                 CONSTANTS.SPEED_LIMIT_THRESHOLD_30,
                 location=Location.NOT_RELEVANT,
             )
         else:
             return check_dist_to_obj_sign(
-                blackboard.signs,
+                self.blackboard.signs,
                 [SIGNS.SPEED_LIMIT_30],
                 CONSTANTS.SPEED_LIMIT_THRESHOLD_30,
                 location=Location.NOT_RELEVANT,

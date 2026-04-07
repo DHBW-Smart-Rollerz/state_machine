@@ -30,45 +30,31 @@ class BaseState(yasmin.State):
         super().__init__(outcomes=list(self.TRANSITIONS.keys()))
         self._init_time = time.perf_counter()
         yasmin.YASMIN_LOG_INFO(f"Entering {self.NAME} state")
-        self.blackboard: BlackBoard = None
+        self.blackboard: BlackBoard = BlackBoard()
         self.last_log_time: float = 0
 
     def local_execute(
         self,
-        blackboard: BlackBoard,
         update_black_board: bool = True,
     ) -> str:
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- BlackBoard
-        """
-        yasmin.YASMIN_LOG_INFO(f"Type of blackboard: {type(blackboard)}")
+        """Execute the state."""
         if update_black_board:
-            blackboard.update(self.STATE_DESCRIPTION)
-            blackboard.current_state = self.NAME
+            self.blackboard.update(self.STATE_DESCRIPTION)
+            self.blackboard.current_state = self.NAME
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
-        self.blackboard = blackboard
         time.sleep(0.0001)
 
-    def execute(
-        self,
-        blackboard: yasmin.Blackboard | BlackBoard,
-    ):
+    def execute(self, blackboard: yasmin.Blackboard):
         """
         Execute the state.
 
         Arguments:
             blackboard -- BlackBoard
         """
-        custom_bb = None
-        if isinstance(blackboard, yasmin.Blackboard):
-            custom_bb = blackboard["custom_bb"]
-        else:
-            custom_bb = blackboard
-        assert isinstance(custom_bb, BlackBoard), "custom_bb must be of type BlackBoard"
-        output = self.local_execute(custom_bb)
+        assert isinstance(
+            self.blackboard, BlackBoard
+        ), "custom_bb must be of type BlackBoard"
+        output = self.local_execute()
         self.set_last_state()
         return output
 

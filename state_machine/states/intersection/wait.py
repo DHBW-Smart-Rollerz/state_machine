@@ -4,7 +4,7 @@ import yasmin
 from smarty_utils.enums import OBJECTS, Light, Location
 
 from state_machine.components.base_state import BaseState
-from state_machine.components.state_description import BlackBoard, StateDescription
+from state_machine.components.state_description import StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
@@ -25,17 +25,9 @@ class WaitState(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().execute(blackboard)
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
 
         start_location = Location.UNKNOWN
         while start_location == Location.UNKNOWN and not self._check_timeout():

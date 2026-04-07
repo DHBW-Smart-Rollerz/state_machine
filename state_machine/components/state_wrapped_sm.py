@@ -23,6 +23,7 @@ class StateWrappedStateMachine(BaseState):
         self._run_sm = False
         self._first_call = True
         self._timer = None
+        self._blackboard = BlackBoard()
         self.reset()
 
     def reset(self):
@@ -30,7 +31,7 @@ class StateWrappedStateMachine(BaseState):
         if self._run_sm:
             yasmin.YASMIN_LOG_WARN("State machine is running, cannot reset")
             return
-        self.blackboard = None
+        self.blackboard.reset()
         self._sm_thread = None
         self._sm_watchdog = None
         self._run_sm = False
@@ -41,24 +42,20 @@ class StateWrappedStateMachine(BaseState):
 
     def local_execute(
         self,
-        blackboard: BlackBoard,
         timeout_time: float = -1.0,
     ) -> str:
         """
         Execute the state and start the state machine.
 
         Arguments:
-            blackboard -- Blackboard object
             timeout_time -- Timeout in seconds (default: -1.0, no timeout)
 
         Returns:
             str -- Next state (loop) per default
         """
-        super().local_execute(blackboard, update_black_board=False)
+        super().local_execute(update_black_board=False)
         if self._first_call:
-            bb = self.blackboard  # save before reset() clears it
             self.reset()
-            self.blackboard = bb  # restore after reset
             if timeout_time > 0:
                 self.start_timeout_timer(timeout_time)
             self._first_call = False
@@ -99,11 +96,7 @@ class StateWrappedStateMachine(BaseState):
             raise ValueError("Blackboard is not set")
 
         self._run_sm = True
-        custom_bb = self.blackboard
-        assert isinstance(custom_bb, BlackBoard), "custom_bb must be of type BlackBoard"
-        yasmin_bb = yasmin.Blackboard()
-        yasmin_bb["custom_bb"] = custom_bb
-        self._outcome = self.sm(yasmin_bb)
+        self._outcome = self.sm()
         yasmin.YASMIN_LOG_WARN("Internal State Machine finished!")
         self._run_sm = False
 

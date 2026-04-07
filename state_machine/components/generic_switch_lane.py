@@ -32,16 +32,9 @@ class GenericSwitchLaneState(BaseState):
 
         super().__init__(debug)
 
-    def local_execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- Custom BlackBoard containing the state information
-        Returns:
-            str -- The next state to transition to
-        """
-        self._goal_lane = Location.opposite(blackboard.car_lane)
+    def local_execute(self):
+        """Execute the state."""
+        self._goal_lane = Location.opposite(self.blackboard.car_lane)
         self.STATE_DESCRIPTION = StateDescription(
             max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
             goal_lane=self._goal_lane,
@@ -58,7 +51,7 @@ class GenericSwitchLaneState(BaseState):
                 Nodes.STATE_ESTIMATION: NodeState.ACTIVE,
             },
         )
-        super().local_execute(blackboard)
+        super().local_execute()
 
         # Check if the lane switch is done
         while not self.check_lane_switch_done():
