@@ -99,9 +99,7 @@ class StateWrappedStateMachine(BaseState):
             raise ValueError("Blackboard is not set")
 
         self._run_sm = True
-        yasmin_bb = yasmin.Blackboard()
-        yasmin_bb["bb"] = self.blackboard
-        self._outcome = self.sm(yasmin_bb)
+        self._outcome = self.sm(self.blackboard)
         yasmin.YASMIN_LOG_WARN("Internal State Machine finished!")
         self._run_sm = False
 
@@ -122,9 +120,6 @@ class StateWrappedStateMachine(BaseState):
         """
         self.sm = yasmin.StateMachine(outcomes=["done", "canceled"])
         [self._add_state(state_class) for state_class in state_classes]
-
-        # if self.debug:
-        #     yasmin_viewer.YasminViewerPub(f"{self.NAME}_state_machine", self.sm)
 
     def _add_state(self, state_class: yasmin.State):
         """

@@ -37,7 +37,7 @@ class StateDescription:
         self.node_states = node_states
 
 
-class BlackBoard(yasmin.Blackboard):
+class BlackBoard:
     """Describes the state including maximal speed, lane, and other parameters."""
 
     def __init__(
@@ -70,7 +70,6 @@ class BlackBoard(yasmin.Blackboard):
             node_states -- Node states
             remote_state -- Remote state
         """
-        super().__init__()
         self.__lock = threading.Lock()
         self._light_configuration = light_configuration
         self._max_speed = max_speed
@@ -87,6 +86,7 @@ class BlackBoard(yasmin.Blackboard):
         self._speed_limit = np.inf
         self._has_speed_limit = False
         self._free_drive = False
+        self._other_parameters = {}
 
     def update(self, state_description: StateDescription):
         """
@@ -257,6 +257,12 @@ class BlackBoard(yasmin.Blackboard):
         with self.__lock:
             return self._current_state
 
+    @current_state.setter
+    def current_state(self, state: str):
+        """Set the current state."""
+        with self.__lock:
+            self._current_state = state
+
     @property
     def node_states(self) -> dict[str, NodeState]:
         """Get the node states."""
@@ -281,6 +287,27 @@ class BlackBoard(yasmin.Blackboard):
         """Set the remote state."""
         with self.__lock:
             self._remote_state.value = state
+
+    def __getattr__(self, name: str):
+        """Get unknown attributes from other_parameters dict."""
+        if name.startswith("_"):
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
+        with self.__lock:
+            if name in self._other_parameters:
+                return self._other_parameters[name]
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
+
+    def __setattr__(self, name: str, value):
+        """Set unknown attributes in other_parameters dict."""
+        if name.startswith("_") or name in self.__dict__:
+            object.__setattr__(self, name, value)
+        else:
+            with self.__lock:
+                self._other_parameters[name] = value
 
     def __str__(self):
         """

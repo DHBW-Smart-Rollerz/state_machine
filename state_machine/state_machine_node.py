@@ -8,7 +8,6 @@ import rclpy
 import state_msgs.msg
 import std_msgs.msg
 import yasmin
-import yasmin_viewer
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
 from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
@@ -200,14 +199,9 @@ class StateMachine(SmartyNode):
         ]
         [self._add_state(state_class) for state_class in state_classes]
 
-        # if self._debug:
-        #     yasmin_viewer.YasminViewerPub("state_machine", self.sm)
-
     def _run_sm(self, custom_bb: BlackBoard):
         """Wrap the custom BlackBoard into a yasmin Blackboard and run the state machine."""
-        yasmin_bb = yasmin.Blackboard()
-        yasmin_bb["bb"] = custom_bb
-        self.sm(yasmin_bb)
+        self.sm(custom_bb)
 
     def _add_state(self, state_class: yasmin.State):
         """

@@ -1,7 +1,6 @@
 import numpy as np
 import state_msgs
 import state_msgs.msg
-import yasmin
 from smarty_utils.enums import OBJECTS, SIGNS
 
 from state_machine.utils.detectors import get_object_location_debug

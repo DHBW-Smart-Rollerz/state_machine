@@ -37,12 +37,11 @@ class GenericSwitchLaneState(BaseState):
         Execute the state.
 
         Arguments:
-            blackboard -- The blackboard containing the state information
-
+            blackboard -- Custom BlackBoard containing the state information
         Returns:
             str -- The next state to transition to
         """
-        self._goal_lane = Location.opposite(blackboard["bb"].car_lane)
+        self._goal_lane = Location.opposite(blackboard.car_lane)
         self.STATE_DESCRIPTION = StateDescription(
             max_speed=CONSTANTS.MAX_SPEED_SWITCH_LANE,
             goal_lane=self._goal_lane,
