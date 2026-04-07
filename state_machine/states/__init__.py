@@ -23,3 +23,5 @@ class CONSTANTS:
     LOG_TIME = 1  # s
     SPEED_LIMIT_30 = 0.83  # m/s
     SPEED_LIMIT_THRESHOLD_30 = 500  # mm
+    TURNING_THRESHOLD = 500  # mm
+    PUBLISH_HZ = 30  # Hz

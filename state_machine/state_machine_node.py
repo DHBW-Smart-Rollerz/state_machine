@@ -66,6 +66,7 @@ class StateMachine(SmartyNode):
                 "goal_lane_topic": "/state_machine/goal_lane",
                 "debug_state_topic": "/state_machine/debug/state",
                 "drive_mode_topic": "/remote/drive_mode",
+                "path_planning_direction_topic": "/state_machine/path_planning/direction",
                 # Parameters
                 "debug": debug,
                 "test_mode": test_mode,
@@ -104,7 +105,7 @@ class StateMachine(SmartyNode):
                 "car_lane_topic": (std_msgs.msg.String, None),
                 "goal_lane_topic": (std_msgs.msg.String, None),
                 "target_pose_topic": (geometry_msgs.msg.Vector3, None),
-                # TODO: For pathplannign -> Direction for driving (straight, left, right) NAME:  "path_planning_direction_topic": (std_msgs.msg.String, None)
+                "path_planning_direction_topic": (std_msgs.msg.String, None),
             },
         )
         self._logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
@@ -120,16 +121,21 @@ class StateMachine(SmartyNode):
         self.target_pose_thread = threading.Thread(
             target=self.target_pose_publisher_fun_thread
         )
+        self.path_planning_thread = threading.Thread(
+            target=self.path_planning_direction_publisher_fun_thread
+        )
         self.state_machine_thread = threading.Thread(target=self._run_sm)
         self.log_blackboard_thread = threading.Thread(
             target=self.log_blackboard_thread_fun
         )
         self.speed_limit_thread.daemon = True
         self.target_pose_thread.daemon = True
+        self.path_planning_thread.daemon = True
         self.state_machine_thread.daemon = True
         self.log_blackboard_thread.daemon = True
         self.speed_limit_thread.start()
         self.target_pose_thread.start()
+        self.path_planning_thread.start()
         self.state_machine_thread.start()
         self.log_blackboard_thread.start()
 
@@ -320,6 +326,39 @@ class StateMachine(SmartyNode):
         self.target_pose_topic.publish(msg)
         return True
 
+    def path_planning_direction_publisher_fun_thread(self):
+        """Publish the path planning direction."""
+        last_time = time.perf_counter()
+        while rclpy.ok():
+            slack = time.perf_counter() - last_time
+            wait_for = (1 / CONSTANTS.PUBLISH_HZ) - slack
+            if wait_for > 0:
+                time.sleep(wait_for)
+            else:
+                yasmin.YASMIN_LOG_WARN(
+                    f"Path planning direction publisher is running behind by {-wait_for:.2f} seconds."
+                )
+            last_time = time.perf_counter()
+            if check_dist_to_obj_sign(
+                self.blackboard.signs,
+                [SIGNS.TURN_LEFT],
+                CONSTANTS.TURNING_THRESHOLD,
+                location=Location.NOT_RELEVANT,
+            ):
+                direction = "left"
+            elif check_dist_to_obj_sign(
+                self.blackboard.signs,
+                [SIGNS.TURN_RIGHT],
+                CONSTANTS.TURNING_THRESHOLD,
+                location=Location.NOT_RELEVANT,
+            ):
+                direction = "right"
+            else:
+                direction = "straight"
+            msg = std_msgs.msg.String()
+            msg.data = direction
+            self.path_planning_direction_topic.publish(msg)
+
     #################################
     # Target pose publisher thread
     #################################
@@ -346,8 +385,17 @@ class StateMachine(SmartyNode):
 
     def target_pose_publisher_fun_thread(self):
         """Target pose publisher thread."""
+        last_time = time.perf_counter()
         while rclpy.ok():
-            time.sleep(0.1)
+            slack = time.perf_counter() - last_time
+            wait_for = (1 / CONSTANTS.PUBLISH_HZ) - slack
+            if wait_for > 0:
+                time.sleep(wait_for)
+            else:
+                yasmin.YASMIN_LOG_WARN(
+                    f"Target Pose direction publisher is running behind by {-wait_for:.2f} seconds."
+                )
+            last_time = time.perf_counter()
             if self.blackboard.goal_lane in (Location.LEFT_LANE, Location.LEFT):
                 target_coeffs = self.blackboard.lane_coefficients.get("left", None)
             elif self.blackboard.goal_lane in (Location.RIGHT_LANE, Location.RIGHT):
