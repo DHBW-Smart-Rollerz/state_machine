@@ -121,17 +121,22 @@ class StateMachine(SmartyNode):
             target=self.target_pose_publisher_fun_thread
         )
         self.state_machine_thread = threading.Thread(target=self._run_sm)
+        self.log_blackboard_thread = threading.Thread(
+            target=self.log_blackboard_thread_fun
+        )
         self.speed_limit_thread.daemon = True
         self.target_pose_thread.daemon = True
         self.state_machine_thread.daemon = True
+        self.log_blackboard_thread.daemon = True
         self.speed_limit_thread.start()
         self.target_pose_thread.start()
         self.state_machine_thread.start()
+        self.log_blackboard_thread.start()
 
         if self._debug:
             self.get_logger().info("State machine initialized.")
             self.app_thread = threading.Thread(
-                target=lambda: create_and_run_flask_app(self.blackboard),
+                target=create_and_run_flask_app, args=(self.blackboard,)
             )
             self.app_thread.daemon = True
             self.app_thread.start()
@@ -457,6 +462,12 @@ class StateMachine(SmartyNode):
             return False
 
         return callback
+
+    def log_blackboard_thread_fun(self):
+        """Thread function to log the blackboard."""
+        while rclpy.ok():
+            time.sleep(5)
+            yasmin.YASMIN_LOG_INFO(f"Current Blackboard State: {self.blackboard}")
 
     def cancel_state(self):
         """Cancel the state machine."""

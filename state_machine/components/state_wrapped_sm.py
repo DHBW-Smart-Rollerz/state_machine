@@ -23,8 +23,9 @@ class StateWrappedStateMachine(BaseState):
         self._run_sm = False
         self._first_call = True
         self._timer = None
-        self._blackboard = BlackBoard()
-        self.reset()
+        self._sm_thread = None
+        self._sm_watchdog = None
+        self._outcome = None
 
     def reset(self):
         """Reset the state."""
@@ -56,6 +57,7 @@ class StateWrappedStateMachine(BaseState):
         super().local_execute(update_black_board=False)
         if self._first_call:
             self.reset()
+            self.blackboard.current_state = self.NAME
             if timeout_time > 0:
                 self.start_timeout_timer(timeout_time)
             self._first_call = False
@@ -139,6 +141,6 @@ class StateWrappedStateMachine(BaseState):
         """Set the timeout for the state machine."""
         # Start timer to cancel state machine after timeout in seconds
         if timeout > 0:
-            self._timer = threading.Timer(timeout, self.cancel_state())
+            self._timer = threading.Timer(timeout, self.cancel_state)
             self._timer.start()
-            yasmin.YASMIN_LOG_WARN("Canceld with timer.")
+            yasmin.YASMIN_LOG_WARN(f"Timeout timer started: {timeout}s.")

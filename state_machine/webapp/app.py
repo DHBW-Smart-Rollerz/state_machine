@@ -89,6 +89,9 @@ def create_app(blackboard: BlackBoard):
     app = Flask(__name__)
     app.blackboard = blackboard
 
+    # Create a lock for thread-safe access to the blackboard
+    blackboard_lock = threading.Lock()
+
     def get_blackboard_params():
         """
         Retrieve and format blackboard parameters for the web interface.
@@ -131,8 +134,6 @@ def create_app(blackboard: BlackBoard):
 
         # Add lane coefficients data
         for side, poly in app.blackboard.lane_coefficients.items():
-            # poly1d stores coefficients high-to-low; reverse back to low-to-high
-            # for readability: [a, b, c, ...] → a + b*x + c*x² + ...
             params["lane_coefficients"][side] = [
                 round(float(c), 4) for c in reversed(poly.coeffs)
             ]
@@ -206,13 +207,13 @@ def create_app(blackboard: BlackBoard):
         pass
 
         def generate():
-            """Generates the data stream."""
             while True:
-                params = get_blackboard_params()
-                yield f"data: {json.dumps(params)}\n\n"
+                with blackboard_lock:  # Ensure thread-safe access
+                    data = get_blackboard_params()
+                yield f"data: {json.dumps(data)}\n\n"
                 time.sleep(0.1)
 
-        return Response(generate(), mimetype="text/event-stream")
+        return Response(generate(), content_type="text/event-stream")
 
     return app
 
@@ -274,7 +275,7 @@ async def websocket_handler(websocket, _, blackboard):
         await asyncio.sleep(0.1)
 
 
-def create_and_run_flask_app(blackboard):
+def create_and_run_flask_app(blackboard: BlackBoard):
     """
     Creates and runs a Flask application alongside a WebSocket server.
 

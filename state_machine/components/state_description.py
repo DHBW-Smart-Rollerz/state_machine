@@ -54,7 +54,6 @@ class BlackBoard:
         """Generate a singleton instance of the blackboard."""
         if cls.instance is None:
             cls.instance = super(BlackBoard, cls).__new__(cls)
-            cls.instance.__init__(*args, **kwargs)
         return cls.instance
 
     def __init__(
@@ -121,7 +120,7 @@ class BlackBoard:
             last_state.value,
             last_timestamp.value,
             remote_state.value,
-            node_states.copy(),
+            {key: p.value for key, p in node_states.items()},
         ]
         self._light_configuration = light_configuration
         self._max_speed = max_speed
@@ -185,7 +184,10 @@ class BlackBoard:
                 self._initial_state,
             ):
                 if isinstance(param, dict):
-                    param = {key: p.value for key, p in param.items()}
+                    # value is {Nodes: initial_int_value}
+                    for key, initial_value in value.items():
+                        if key in param:
+                            param[key].value = initial_value
                 else:
                     param.value = value
             self._current_state = "No State"
@@ -384,24 +386,72 @@ class BlackBoard:
 
     def __getattr__(self, name: str):
         """Get unknown attributes from other_parameters dict."""
+        # Prevent infinite recursion during early initialization
+        # __getattr__ is only called when normal lookup fails, so private
+        # attributes that are missing should raise immediately.
         if name.startswith("_"):
             raise AttributeError(
                 f"'{type(self).__name__}' object has no attribute '{name}'"
             )
-        with self.__lock:
-            if name in self._other_parameters:
-                return self._other_parameters[name]
+
+        # Check if it's a property on the class — if so, the fact that we
+        # reached __getattr__ means the underlying private attribute doesn't
+        # exist yet (early init). Raise AttributeError to signal that.
+        for cls in type(self).__mro__:
+            if name in cls.__dict__ and isinstance(cls.__dict__[name], property):
+                raise AttributeError(
+                    f"'{type(self).__name__}' property '{name}' is not yet initialized"
+                )
+
+        # Guard against access before __lock is initialized
+        try:
+            lock = object.__getattribute__(self, "_BlackBoard__lock")
+        except AttributeError:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
+
+        # Look up in _other_parameters with thread safety
+        with lock:
+            try:
+                other_params = object.__getattribute__(self, "_other_parameters")
+                if name in other_params:
+                    return other_params[name]
+            except AttributeError:
+                pass
+
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'"
         )
 
     def __setattr__(self, name: str, value):
         """Set unknown attributes in other_parameters dict."""
-        if name.startswith("_") or name in self.__dict__:
+        # Allow private attributes to be set directly
+        if name.startswith("_"):
             object.__setattr__(self, name, value)
-        else:
-            with self.__lock:
-                self._other_parameters[name] = value
+            return
+
+        # Check if the attribute is a property (descriptor) on the class
+        for cls in type(self).__mro__:
+            if name in cls.__dict__:
+                attr = cls.__dict__[name]
+                if isinstance(attr, property):
+                    # Invoke the property setter
+                    attr.fset(self, value)
+                    return
+                else:
+                    # It's a regular class attribute, set it directly
+                    object.__setattr__(self, name, value)
+                    return
+
+        # Check if it's already in the instance dict
+        if name in self.__dict__:
+            object.__setattr__(self, name, value)
+            return
+
+        # Otherwise, store in _other_parameters
+        with self.__lock:
+            self._other_parameters[name] = value
 
     def __str__(self):
         """
@@ -410,4 +460,4 @@ class BlackBoard:
         Returns:
             str -- String representation of the blackboard
         """
-        return f"Blackboard(signs={self._signs})"
+        return f"Blackboard(signs={self._signs}, objects={self._objects}, light_configuration={self._light_configuration}, max_speed={self._max_speed}, goal_lane={self._goal_lane}, car_lane={self._car_lane}, lane_coefficients={self._lane_coefficients}, last_state={self._last_state}, last_timestamp={self._last_timestamp}, node_states={{key: param.value for key, param in self._node_states.items()}}, remote_state={self._remote_state}, current_state={self._current_state})"

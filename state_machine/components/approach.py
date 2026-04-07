@@ -24,7 +24,7 @@ class Approach(BaseState):
 
     def local_execute(self):
         """Execute the state."""
-        super().execute()
+        super().local_execute()
         start_time = self.blackboard.last_timestamp
 
         time_to_wait = (self.APPROACH_DISTANCE / 1000) / self.blackboard.max_speed

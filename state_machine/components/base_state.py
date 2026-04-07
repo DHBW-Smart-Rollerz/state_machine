@@ -40,7 +40,7 @@ class BaseState(yasmin.State):
         """Execute the state."""
         if update_black_board:
             self.blackboard.update(self.STATE_DESCRIPTION)
-            self.blackboard.current_state = self.NAME
+        self.blackboard.current_state = self.NAME
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
         time.sleep(0.0001)
 
