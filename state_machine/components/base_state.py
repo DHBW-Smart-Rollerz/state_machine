@@ -54,7 +54,7 @@ class BaseState(yasmin.State):
 
     def execute(
         self,
-        blackboard: yasmin.Blackboard,
+        blackboard: yasmin.Blackboard | BlackBoard,
     ):
         """
         Execute the state.
@@ -62,7 +62,11 @@ class BaseState(yasmin.State):
         Arguments:
             blackboard -- BlackBoard
         """
-        custom_bb = blackboard["custom_bb"]
+        custom_bb = None
+        if isinstance(blackboard, yasmin.Blackboard):
+            custom_bb = blackboard["custom_bb"]
+        else:
+            custom_bb = blackboard
         assert isinstance(custom_bb, BlackBoard), "custom_bb must be of type BlackBoard"
         output = self.local_execute(custom_bb)
         self.set_last_state()
