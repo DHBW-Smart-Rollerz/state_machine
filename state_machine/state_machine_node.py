@@ -1,4 +1,3 @@
-import enum
 import math
 import threading
 import time
@@ -105,6 +104,7 @@ class StateMachine(SmartyNode):
                 "car_lane_topic": (std_msgs.msg.String, None),
                 "goal_lane_topic": (std_msgs.msg.String, None),
                 "target_pose_topic": (geometry_msgs.msg.Vector3, None),
+                # TODO: For pathplannign -> Direction for driving (straight, left, right) NAME:  "path_planning_direction_topic": (std_msgs.msg.String, None)
             },
         )
         self._logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)

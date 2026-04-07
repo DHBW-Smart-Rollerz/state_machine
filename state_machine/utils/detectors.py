@@ -1,5 +1,6 @@
 import numpy as np
 import state_msgs.msg
+import yasmin
 from smarty_utils.enums import OBJECTS, SIGNS, Location
 
 from state_machine.utils import RULE_CONSTANTS
@@ -120,14 +121,17 @@ def get_car_location(left_lane: any, right_lane: any) -> Location:
 
     car_y = 0.0  # front-axle centre in ego coordinates
 
+    loc = Location.UNKNOWN
     if car_y >= left_boarder:
-        return Location.LEFT
+        loc = Location.LEFT
     elif car_y >= center_boarder:
-        return Location.LEFT_LANE
+        loc = Location.LEFT_LANE
     elif car_y >= right_boarder:
-        return Location.RIGHT_LANE
+        loc = Location.RIGHT_LANE
     else:
-        return Location.RIGHT
+        loc = Location.RIGHT
+
+    return loc
 
 
 def get_object_location(

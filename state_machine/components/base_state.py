@@ -44,6 +44,7 @@ class BaseState(yasmin.State):
         Arguments:
             blackboard -- BlackBoard
         """
+        yasmin.YASMIN_LOG_INFO(f"Type of blackboard: {type(blackboard)}")
         if update_black_board:
             blackboard.update(self.STATE_DESCRIPTION)
             blackboard.current_state = self.NAME
@@ -53,7 +54,7 @@ class BaseState(yasmin.State):
 
     def execute(
         self,
-        blackboard: BlackBoard,
+        blackboard: yasmin.Blackboard,
     ):
         """
         Execute the state.
@@ -61,7 +62,9 @@ class BaseState(yasmin.State):
         Arguments:
             blackboard -- BlackBoard
         """
-        output = self.local_execute(blackboard)
+        custom_bb = blackboard["custom_bb"]
+        assert isinstance(custom_bb, BlackBoard), "custom_bb must be of type BlackBoard"
+        output = self.local_execute(custom_bb)
         self.set_last_state()
         return output
 

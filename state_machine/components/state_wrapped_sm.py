@@ -99,7 +99,11 @@ class StateWrappedStateMachine(BaseState):
             raise ValueError("Blackboard is not set")
 
         self._run_sm = True
-        self._outcome = self.sm(self.blackboard)
+        custom_bb = self.blackboard
+        assert isinstance(custom_bb, BlackBoard), "custom_bb must be of type BlackBoard"
+        yasmin_bb = yasmin.Blackboard()
+        yasmin_bb["custom_bb"] = custom_bb
+        self._outcome = self.sm(yasmin_bb)
         yasmin.YASMIN_LOG_WARN("Internal State Machine finished!")
         self._run_sm = False
 
