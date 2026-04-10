@@ -512,7 +512,7 @@ class StateMachine(SmartyNode):
         """Thread function to log the blackboard."""
         while rclpy.ok():
             time.sleep(5)
-            yasmin.YASMIN_LOG_INFO(f"Current Blackboard State: {self.blackboard}")
+            #yasmin.YASMIN_LOG_INFO(f"Current Blackboard State: {self.blackboard}")
 
     def cancel_state(self):
         """Cancel the state machine."""

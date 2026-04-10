@@ -45,7 +45,7 @@ class BaseState(yasmin.State):
         time.sleep(0.0001)
         return "loop"
 
-    def execute(self, blackboard: yasmin.Blackboard):
+    def execute(self, *args, **kwargs):
         """
         Execute the state.
 
