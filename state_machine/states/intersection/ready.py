@@ -56,12 +56,10 @@ class ReadyState(BaseState):
                 [SIGNS.STOP, SIGNS.GIVE_WAY],
                 DRIVE_CONSTANTS.INTERSECTION_THRESHOLD,
             ):
-                self.log_state(
-                    "Intersection: sign lost, assuming zone passed — skipping"
-                )
                 yasmin.YASMIN_LOG_WARN(
-                    "Intersection: sign lost, assuming zone passed — skipping"
+                    f"Intersection: sign lost, assuming zone passed — skipping, has signs: {self.blackboard.signs}"
                 )
+
                 return "canceled"
 
             self.log_state("Intersection: Searching for sign")

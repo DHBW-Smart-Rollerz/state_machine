@@ -43,6 +43,7 @@ class BaseState(yasmin.State):
         self.blackboard.current_state = self.NAME
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
         time.sleep(0.0001)
+        return "loop"
 
     def execute(self, blackboard: yasmin.Blackboard):
         """

@@ -32,7 +32,6 @@ class StateWrappedStateMachine(BaseState):
         if self._run_sm:
             yasmin.YASMIN_LOG_WARN("State machine is running, cannot reset")
             return
-        self.blackboard.reset()
         self._sm_thread = None
         self._sm_watchdog = None
         self._run_sm = False
