@@ -26,14 +26,11 @@ def generate_launch_description():
         "debug", default_value="False", description="Enable debug mode"
     )
 
-    querregelung = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                get_package_share_directory("querregelung"),
-                "/launch/querregelung.launch.py",
-            ]
-        ),
-        launch_arguments={"debug": debug}.items(),
+    querregelung = Node(
+        package="querregelung",
+        executable="querregelung",
+        name="querregelung",
+        output="screen",
     )
 
     uart_publisher = Node(
