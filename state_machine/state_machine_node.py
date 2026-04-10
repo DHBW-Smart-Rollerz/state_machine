@@ -361,7 +361,7 @@ class StateMachine(SmartyNode):
     #################################
 
     def _ref_point_controller(
-        self, coefficients: dict[str, np.poly1d]
+        self, coefficients: list[float]
     ) -> tuple[float, float, float]:
         """
         Determines reference points for the controller based on the provided polynomial coefficients.
@@ -372,12 +372,15 @@ class StateMachine(SmartyNode):
         Returns:
             tuple: Tuple containing (x, y, theta) representing the reference point coordinates and angle.
         """
-        # coefficients is a np.poly1d (high-to-low order), already callable.
-        # Evaluate the lane position and slope at a look-ahead of 0.1 m.
-        x = 0.1  # look-ahead in metres
-        y = coefficients(x)
-        slope = coefficients.deriv()(x)  # dy/dx at x
-        theta = math.atan(slope)
+        p = np.poly1d(coefficients[::-1])
+        x = 0.1
+        y = p(x)
+        y__temp = y
+        theta = +1 * math.atan(
+            3 * coefficients[3] * ((y__temp) ** 2)
+            + 2 * coefficients[2] * (y__temp)
+            + coefficients[1]
+        )
         return x, y, theta
 
     def target_pose_publisher_fun_thread(self):
@@ -512,7 +515,7 @@ class StateMachine(SmartyNode):
         """Thread function to log the blackboard."""
         while rclpy.ok():
             time.sleep(5)
-            #yasmin.YASMIN_LOG_INFO(f"Current Blackboard State: {self.blackboard}")
+            # yasmin.YASMIN_LOG_INFO(f"Current Blackboard State: {self.blackboard}")
 
     def cancel_state(self):
         """Cancel the state machine."""
