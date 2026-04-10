@@ -246,9 +246,6 @@ class StateMachine(SmartyNode):
         self.blackboard.signs = [
             obj for obj in objects if isinstance(obj["name"], SIGNS)
         ]
-        self.get_logger().info(
-            f"Objects: {self.blackboard.objects}, Signs: {self.blackboard.signs}"
-        )
         return True
 
     def new_remote_state(self, msg: std_msgs.msg.UInt8):

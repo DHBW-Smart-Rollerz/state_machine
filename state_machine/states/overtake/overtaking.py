@@ -36,5 +36,5 @@ class OvertakingStateMachine(StateWrappedStateMachine):
     def local_execute(self):
         """Execute the state machine."""
         if self._first_call:
-            self.blackboard["start_location"] = copy.copy(self.blackboard.car_lane)
+            self.blackboard.start_location = copy.copy(self.blackboard.car_lane)
         return super().local_execute(timeout_time=CONSTANTS.OVERTAKE.TIMEOUT)

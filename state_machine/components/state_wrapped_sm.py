@@ -57,7 +57,7 @@ class StateWrappedStateMachine(BaseState):
         super().local_execute(update_black_board=False)
         if self._first_call:
             self.reset()
-            self.blackboard.current_state = self.NAME
+            # self.blackboard.current_state = self.NAME
             if timeout_time > 0:
                 self.start_timeout_timer(timeout_time)
             self._first_call = False
@@ -143,4 +143,4 @@ class StateWrappedStateMachine(BaseState):
         if timeout > 0:
             self._timer = threading.Timer(timeout, self.cancel_state)
             self._timer.start()
-            yasmin.YASMIN_LOG_WARN(f"Timeout timer started: {timeout}s.")
+            yasmin.YASMIN_LOG_WARN("Canceld with timer.")

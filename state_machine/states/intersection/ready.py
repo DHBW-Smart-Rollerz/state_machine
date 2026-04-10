@@ -1,5 +1,6 @@
 import time
 
+import yasmin
 from smarty_utils.enums import SIGNS, Light
 
 from state_machine.components.base_state import BaseState
@@ -56,6 +57,9 @@ class ReadyState(BaseState):
                 DRIVE_CONSTANTS.INTERSECTION_THRESHOLD,
             ):
                 self.log_state(
+                    "Intersection: sign lost, assuming zone passed — skipping"
+                )
+                yasmin.YASMIN_LOG_WARN(
                     "Intersection: sign lost, assuming zone passed — skipping"
                 )
                 return "canceled"

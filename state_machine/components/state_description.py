@@ -137,6 +137,7 @@ class BlackBoard:
         self._speed_limit = np.inf
         self._has_speed_limit = False
         self._free_drive = False
+        self._start_location = Location.UNKNOWN
         self._other_parameters = {}
         self._test_mode = test_mode
 
@@ -383,6 +384,18 @@ class BlackBoard:
         """Check if a speed limit is currently active."""
         with self.__lock:
             return self._has_speed_limit
+
+    @property
+    def start_location(self) -> Location:
+        """Get the start location."""
+        with self.__lock:
+            return self._start_location
+
+    @start_location.setter
+    def start_location(self, location: Location):
+        """Set the start location."""
+        with self.__lock:
+            self._start_location = location
 
     def __getattr__(self, name: str):
         """Get unknown attributes from other_parameters dict."""
