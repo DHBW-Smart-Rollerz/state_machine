@@ -1,10 +1,7 @@
-from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
 
 
 def generate_launch_description():
@@ -19,8 +16,6 @@ def generate_launch_description():
     Returns:
         LaunchDescription
     """
-    debug = LaunchConfiguration("debug")
-
     # ── Shared argument ───────────────────────────────────────────────────────
     declare_debug = DeclareLaunchArgument(
         "debug", default_value="False", description="Enable debug mode"
@@ -47,11 +42,30 @@ def generate_launch_description():
         output="screen",
     )
 
+    publish_control_active = TimerAction(
+        period=2.0,
+        actions=[
+            ExecuteProcess(
+                cmd=[
+                    "ros2",
+                    "topic",
+                    "pub",
+                    "--once",
+                    "/control/active",
+                    "std_msgs/msg/Bool",
+                    "{data: true}",
+                ],
+                output="screen",
+            )
+        ],
+    )
+
     # Build the list of entities, only include vimbax if available
     entities = []
     entities.append(declare_debug)
     entities.append(querregelung)
     entities.append(uart_publisher)
     entities.append(uart_subscriber)
+    entities.append(publish_control_active)
 
     return LaunchDescription(entities)
