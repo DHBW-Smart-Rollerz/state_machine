@@ -1,9 +1,11 @@
-import os
-
-from ament_index_python import get_package_share_directory
+from ament_index_python.packages import (
+    PackageNotFoundError,
+    get_package_share_directory,
+)
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
@@ -25,21 +27,33 @@ def generate_launch_description():
         LaunchDescription
     """
     debug = LaunchConfiguration("debug")
+    camera_cfg = LaunchConfiguration("camera")
 
     # ── Shared argument ───────────────────────────────────────────────────────
     declare_debug = DeclareLaunchArgument(
         "debug", default_value="False", description="Enable debug mode"
     )
-    # ── Camera group (launched immediately) ───────────────────────────────────
-    vimbax = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                get_package_share_directory("vimbax_camera"),
-                "/launch/vimbax_camera.launch.py",
-            ]
-        ),
-        launch_arguments={"debug": debug}.items(),
+    use_camera = DeclareLaunchArgument(
+        "camera",
+        default_value="True",
+        description="Whether to launch the camera driver",
     )
+    # ── Camera group (launched immediately) ───────────────────────────────────
+    # Only include vimbax camera driver if the package is available
+    try:
+        vimbax_share = get_package_share_directory("vimbax_camera")
+    except PackageNotFoundError:
+        vimbax_share = None
+
+    vimbax = None
+    if vimbax_share:
+        vimbax = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                [vimbax_share, "/launch/vimbax_camera.launch.py"]
+            ),
+            launch_arguments={"debug": debug}.items(),
+            condition=IfCondition(camera_cfg),
+        )
 
     camera_preprocessing = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -104,13 +118,13 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription(
-        [
-            declare_debug,
-            # Camera group — start immediately
-            vimbax,
-            camera_preprocessing,
-            # Everything else — start after camera is up
-            delayed_nodes,
-        ]
-    )
+    # Build the list of entities, only include vimbax if available
+    entities = []
+    entities.append(declare_debug)
+    entities.append(use_camera)
+    if vimbax is not None:
+        entities.append(vimbax)
+    entities.append(camera_preprocessing)
+    entities.append(delayed_nodes)
+
+    return LaunchDescription(entities)

@@ -373,7 +373,7 @@ class BlackBoard:
             self._remote_state.value = state
 
     @property
-    def test_mode(self) -> StateMachineTestModes:
+    def test_mode(self) -> int:
         """Get the test mode."""
         with self.__lock:
             return self._test_mode
