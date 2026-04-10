@@ -22,4 +22,6 @@ class INTERSECTION_CONSTANTS:
     # Maximum speed in m/s
     MAX_SPEED = 0.1  # m/s
     APPROACH_SPEED = 0.1  # m/s
-    APPROACH_DISTANCE = 300  # mm
+    APPROACH_DISTANCE_BLIND = 300  # mm
+    APPROACH_DISTANCE = 120  # mm
+    APPROACH_TIMEOUT = 5  # s # Fallback for crossing detection

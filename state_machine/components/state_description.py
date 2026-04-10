@@ -70,6 +70,7 @@ class BlackBoard:
         node_states: dict[Nodes, ParameterStateParameter] = {},
         remote_state: StateParameter = None,
         test_mode: int = 0,
+        use_crossing_detection: bool = True,
     ):
         """
         Initialize the state description.
@@ -140,6 +141,8 @@ class BlackBoard:
         self._start_location = Location.UNKNOWN
         self._other_parameters = {}
         self._test_mode = test_mode
+        self._crossing_lines = []
+        self._use_crossing_detection = use_crossing_detection
 
     def update(self, state_description: StateDescription):
         """
@@ -396,6 +399,24 @@ class BlackBoard:
         """Set the start location."""
         with self.__lock:
             self._start_location = location
+
+    @property
+    def crossing_lines(self) -> list[dict]:
+        """Get the distance to crossing."""
+        with self.__lock:
+            return self._crossing_lines
+
+    @crossing_lines.setter
+    def crossing_lines(self, lines: list[dict]):
+        """Set the distance to crossing."""
+        with self.__lock:
+            self._crossing_lines = lines
+
+    @property
+    def use_crossing_detection(self) -> bool:
+        """Check if crossing detection should be used."""
+        with self.__lock:
+            return self._use_crossing_detection
 
     def __getattr__(self, name: str):
         """Get unknown attributes from other_parameters dict."""

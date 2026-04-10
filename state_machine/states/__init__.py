@@ -25,3 +25,6 @@ class CONSTANTS:
     SPEED_LIMIT_THRESHOLD_30 = 500  # mm
     TURNING_THRESHOLD = 500  # mm
     PUBLISH_HZ = 30  # Hz
+    CROSSING_DETECTION_CONFIDENCE_THRESHOLD = (
+        0.5  # Confidence threshold for crossing detection
+    )

@@ -221,3 +221,23 @@ def get_object_location_debug(
         location = Location.RIGHT
 
     return location, debug
+
+
+def get_distance_to_line(start: tuple[float, float], end: tuple[float, float]) -> float:
+    """
+    Get the distance from the car to a line defined by two points.
+
+    Arguments:
+        start -- start point of the line (x, y)
+        end -- end point of the line (x, y
+    Returns:
+        float -- distance from the car to the line
+    """
+    # Line coefficients A, B, C for the line equation Ax + By + C = 0
+    A = end[1] - start[1]
+    B = start[0] - end[0]
+    C = end[0] * start[1] - start[0] * end[1]
+
+    # Distance from the car (at origin) to the line
+    distance = abs(C) / np.sqrt(A**2 + B**2)
+    return distance

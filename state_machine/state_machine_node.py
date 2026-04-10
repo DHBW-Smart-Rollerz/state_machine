@@ -13,6 +13,7 @@ from rclpy.parameter_client import AsyncParameterClient
 from smarty_utils.enums import (
     OBJECTS,
     SIGNS,
+    CrossingLineType,
     Light,
     Location,
     Nodes,
@@ -46,7 +47,10 @@ class StateMachine(SmartyNode):
     """State Machine."""
 
     def __init__(
-        self, debug: bool = False, test_mode: int = StateMachineTestModes.NO_STARTBOX.value
+        self,
+        debug: bool = False,
+        test_mode: int = StateMachineTestModes.NO_STARTBOX.value,
+        use_crossing_detection: bool = True,
     ):
         """Initialize the state machine."""
         super().__init__(
@@ -59,6 +63,7 @@ class StateMachine(SmartyNode):
                 "path_planning_right_subscriber": "/path_planning/target/right",
                 "tracking_topic": "/tracking/state",
                 "target_pose_topic": "/path_planning/target/pose",
+                "crossing_detection_topic": "/crossing_detection/result",
                 # Publisher topics
                 "lights_topic": "/lights",
                 "speed_limit_topic": "/control/velocity/target",
@@ -69,6 +74,7 @@ class StateMachine(SmartyNode):
                 "path_planning_direction_topic": "/state_machine/path_planning/direction",
                 # Parameters
                 "debug": debug,
+                "use_crossing_detection": use_crossing_detection,
                 "test_mode": test_mode,
             },
             subscribed_topics={
@@ -90,6 +96,11 @@ class StateMachine(SmartyNode):
                 "tracking_topic": (
                     state_msgs.msg.State,
                     self.tracking_callback,
+                    None,
+                ),
+                "crossing_detection_topic": (
+                    std_msgs.msg.Float32MultiArray,
+                    self.new_crossing,
                     None,
                 ),
                 "drive_mode_topic": (
@@ -178,6 +189,7 @@ class StateMachine(SmartyNode):
             Nodes.CONTROL,
             Nodes.STATE_ESTIMATION,
             Nodes.TRACKING,
+            Nodes.CROSSING_DETECTION,
         ]:
             node_states[node] = ParameterStateParameter(
                 f"{node.value}_state",
@@ -201,6 +213,7 @@ class StateMachine(SmartyNode):
             node_states,
             remote_state,
             int(self.get_parameter("test_mode").value),
+            bool(self.get_parameter("use_crossing_detection").value),
         )
 
     def init_state_machine(self):
@@ -254,6 +267,37 @@ class StateMachine(SmartyNode):
         # if self._debug:
         #     self.get_logger().info(f"Remote State: {msg.data}")
         self.blackboard.remote_state = msg.data
+        return True
+
+    def new_crossing(self, msg: std_msgs.msg.Float32MultiArray):
+        """Callback function for the crossing detection subscriber."""
+        # 1. Element: CrossingLineType
+        # 2. Element: x1
+        # 3. Element: y1
+        # 4. Element: x2
+        # 5. Element: y2
+        # 6. Element: confidence
+        processed = set()
+        for line in msg.data:
+            if not isinstance(line, (list, tuple)) or len(line) != 6:
+                self.get_logger().error(
+                    f"Invalid crossing line data: {line}, expected list/tuple of length 6."
+                )
+                continue
+            crossing_line = {
+                "type": CrossingLineType(int(line[0])),
+                "start": (line[1], line[2]),
+                "end": (line[3], line[4]),
+                "confidence": line[5],
+            }
+            if (
+                crossing_line["confidence"]
+                < CONSTANTS.CROSSING_DETECTION_CONFIDENCE_THRESHOLD
+            ):
+                continue
+            processed.add(tuple(crossing_line.items()))
+        self.blackboard.crossing_lines = []
+        self.blackboard.crossing_lines = [dict(line) for line in processed]
         return True
 
     def new_left_lane(self, msg: std_msgs.msg.Float32MultiArray):
@@ -373,7 +417,6 @@ class StateMachine(SmartyNode):
         Returns:
             tuple: Tuple containing (x, y, theta) representing the reference point coordinates and angle.
         """
-        #yasmin.YASMIN_LOG_INFO(f"INPUT: {coefficients}")
         coefficients = coefficients[::-1]
         p = np.poly1d(coefficients[::-1])
         x = 0.1

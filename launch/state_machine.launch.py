@@ -19,6 +19,7 @@ def generate_launch_description():
     debug = LaunchConfiguration("debug")
     test_mode = LaunchConfiguration("test_mode")
     params_file = LaunchConfiguration("params_file")
+    use_crossing_detection = LaunchConfiguration("use_crossing_detection")
 
     return LaunchDescription(
         [
@@ -26,7 +27,12 @@ def generate_launch_description():
                 "debug", default_value="False", description="Enable debug mode"
             ),
             DeclareLaunchArgument(
-                 "test_mode", default_value="0b00", description="Enable test mode"
+                "test_mode", default_value="0b00", description="Enable test mode"
+            ),
+            DeclareLaunchArgument(
+                "use_crossing_detection",
+                default_value="True",
+                description="Whether to use crossing detection",
             ),
             DeclareLaunchArgument(
                 "params_file",
@@ -45,7 +51,8 @@ def generate_launch_description():
                 parameters=[
                     {
                         "debug": debug,
-                        "test_mode": test_mode
+                        "test_mode": test_mode,
+                        "use_crossing_detection": use_crossing_detection,
                     },
                     params_file,
                 ],
