@@ -26,6 +26,9 @@ def generate_launch_description():
                 "debug", default_value="False", description="Enable debug mode"
             ),
             DeclareLaunchArgument(
+                 "test_mode", default_value="0b00", description="Enable test mode"
+            ),
+            DeclareLaunchArgument(
                 "params_file",
                 default_value=os.path.join(
                     get_package_share_directory("state_machine"),
@@ -40,7 +43,10 @@ def generate_launch_description():
                 executable="state_machine_node",
                 name="state_machine",
                 parameters=[
-                    {"debug": debug, "test_mode": test_mode},
+                    {
+                        "debug": debug,
+                        "test_mode": test_mode
+                    },
                     params_file,
                 ],
                 prefix=[python_executable],

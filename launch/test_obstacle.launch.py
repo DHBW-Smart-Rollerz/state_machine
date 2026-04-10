@@ -28,6 +28,7 @@ def generate_launch_description():
     """
     debug = LaunchConfiguration("debug")
     camera_cfg = LaunchConfiguration("camera")
+    pathplanning_cfg = LaunchConfiguration("pathplanning")
 
     # ── Shared argument ───────────────────────────────────────────────────────
     declare_debug = DeclareLaunchArgument(
@@ -37,6 +38,11 @@ def generate_launch_description():
         "camera",
         default_value="True",
         description="Whether to launch the camera driver",
+    )
+    use_pathplanning = DeclareLaunchArgument(
+        "pathplanning",
+        default_value="True",
+        description="Whether to launch the pathplanning",
     )
     # ── Camera group (launched immediately) ───────────────────────────────────
     # Only include vimbax camera driver if the package is available
@@ -105,6 +111,7 @@ def generate_launch_description():
                 "/launch/pathplanning.launch.py",
             ]
         ),
+        condition=IfCondition(pathplanning_cfg),
         launch_arguments={"debug": debug}.items(),
     )
 
@@ -122,6 +129,7 @@ def generate_launch_description():
     entities = []
     entities.append(declare_debug)
     entities.append(use_camera)
+    entities.append(use_pathplanning)
     if vimbax is not None:
         entities.append(vimbax)
     entities.append(camera_preprocessing)

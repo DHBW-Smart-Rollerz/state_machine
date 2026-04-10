@@ -23,7 +23,7 @@ class DRIVE_CONSTANTS:
     NO_PASSING_ZONE_THRESHOLD = 700  # mm
 
     # Maximum Speed
-    MAX_SPEED = 0.2  # m/s
+    MAX_SPEED = 0.5  # m/s
 
     # State Timeout
     STATE_TIMEOUT = 5  # seconds

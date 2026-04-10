@@ -8,10 +8,10 @@ class NO_PASSING_ZONE_CONSTANTS:
     SAFE_FOLLOWING_DIST = 400  # mm
 
     # Speed while following the leading vehicle (m/s)
-    FOLLOW_SPEED = 0.15  # m/s
+    FOLLOW_SPEED = 0.25  # m/s
 
     # Normal cruise speed when no vehicle ahead (m/s)
-    CRUISE_SPEED = 0.2  # m/s
+    CRUISE_SPEED = 0.4  # m/s
 
     # Maximum time to stay in no-passing zone without a lifted sign (s)
     TIMEOUT = 60  # s

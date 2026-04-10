@@ -44,7 +44,7 @@ class ReadyState(BaseState):
             # Skip if barred area sign not detected within drive threshold
             elif not check_dist_to_obj_sign(
                 self.blackboard.signs,
-                [SIGNS.BARRED_AREA],
+                [SIGNS.PRIORITY_ONCOMING_TRAFFIC],
                 DRIVE_CONSTANTS.BARRED_AREA_THRESHOLD,
             ):
                 return "barred_area_skip"

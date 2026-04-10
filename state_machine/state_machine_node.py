@@ -46,7 +46,7 @@ class StateMachine(SmartyNode):
     """State Machine."""
 
     def __init__(
-        self, debug: bool = False, test_mode: int = StateMachineTestModes.NORMAL.value
+        self, debug: bool = False, test_mode: int = StateMachineTestModes.NO_STARTBOX.value
     ):
         """Initialize the state machine."""
         super().__init__(
@@ -109,6 +109,7 @@ class StateMachine(SmartyNode):
             },
         )
         self._logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
+        yasmin.YASMIN_LOG_INFO(f"Started with mode {test_mode}")
         # Initialize the state machine
         self.node_state_clients = {
             node: AsyncParameterClient(self, node.value) for node in Nodes
@@ -372,6 +373,8 @@ class StateMachine(SmartyNode):
         Returns:
             tuple: Tuple containing (x, y, theta) representing the reference point coordinates and angle.
         """
+        #yasmin.YASMIN_LOG_INFO(f"INPUT: {coefficients}")
+        coefficients = coefficients[::-1]
         p = np.poly1d(coefficients[::-1])
         x = 0.1
         y = p(x)
@@ -397,15 +400,16 @@ class StateMachine(SmartyNode):
                 )
             last_time = time.perf_counter()
             if self.blackboard.goal_lane in (Location.LEFT_LANE, Location.LEFT):
-                target_coeffs = self.blackboard.lane_coefficients.get("left", None)
+                p = self.blackboard.lane_coefficients.get("left", None)
             elif self.blackboard.goal_lane in (Location.RIGHT_LANE, Location.RIGHT):
-                target_coeffs = self.blackboard.lane_coefficients.get("right", None)
+                p = self.blackboard.lane_coefficients.get("right", None)
             else:
-                target_coeffs = None
+                p = None
 
-            if target_coeffs is None:
+            if p is None:
                 continue
 
+            target_coeffs = p.coefficients
             ref_x, ref_y, theta = self._ref_point_controller(target_coeffs)
 
             if theta <= 0.3:

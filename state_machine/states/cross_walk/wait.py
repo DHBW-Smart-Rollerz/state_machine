@@ -24,9 +24,9 @@ class WaitState(BaseState):
         }
         super().__init__(debug)
 
-    def local_execute(self, blackboard: BlackBoard):
+    def local_execute(self):
         """Execute the state."""
-        super().local_execute(blackboard)
+        super().local_execute()
 
         start_location = Location.UNKNOWN
         while start_location == Location.UNKNOWN:
