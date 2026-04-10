@@ -2,7 +2,14 @@ import copy
 import time
 
 import yasmin
-from smarty_utils.enums import SIGNS, Light, Location, Nodes, NodeState
+from smarty_utils.enums import (
+    SIGNS,
+    Light,
+    Location,
+    Nodes,
+    NodeState,
+    StateMachineTestModes,
+)
 
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import StateDescription
@@ -36,7 +43,9 @@ class ReadyState(BaseState):
         """Execute the ReadyState."""
         super().local_execute()
 
-        while self._is_start_box_open():
+        while self._is_start_box_open() and not StateMachineTestModes.use(
+            self.blackboard.test_mode, StateMachineTestModes.NO_STARTBOX
+        ):
             self.log_state("Start Box: Waiting for start box to be open")
             time.sleep(0.0001)
         return "start_box_open"
