@@ -143,6 +143,7 @@ class BlackBoard:
         self._test_mode = test_mode
         self._crossing_lines = []
         self._use_crossing_detection = use_crossing_detection
+        self._drive_straight = False
 
     def update(self, state_description: StateDescription):
         """
@@ -417,6 +418,18 @@ class BlackBoard:
         """Check if crossing detection should be used."""
         with self.__lock:
             return self._use_crossing_detection
+
+    @property
+    def drive_straight(self) -> bool:
+        """Check if the car should drive straight."""
+        with self.__lock:
+            return self._drive_straight
+
+    @drive_straight.setter
+    def drive_straight(self, drive: bool):
+        """Set whether the car should drive straight."""
+        with self.__lock:
+            self._drive_straight = drive
 
     def __getattr__(self, name: str):
         """Get unknown attributes from other_parameters dict."""

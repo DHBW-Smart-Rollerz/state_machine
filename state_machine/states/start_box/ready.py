@@ -14,6 +14,7 @@ from smarty_utils.enums import (
 from state_machine.components.base_state import BaseState
 from state_machine.components.state_description import StateDescription
 from state_machine.states import CONSTANTS
+from state_machine.states.start_box.drvie import DriveState
 from state_machine.utils import detectors
 
 
@@ -37,7 +38,7 @@ class ReadyState(BaseState):
 
     def __init__(self, debug: bool = False):
         """Initialize the ReadyState."""
-        self.TRANSITIONS = {"start_box_open": "done"}
+        self.TRANSITIONS = {"start_box_open": DriveState.NAME}
         super().__init__()
 
     def local_execute(self) -> str:

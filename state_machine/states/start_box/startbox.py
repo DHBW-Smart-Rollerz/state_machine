@@ -1,4 +1,5 @@
 from state_machine.components.state_wrapped_sm import StateWrappedStateMachine
+from state_machine.states.start_box.drvie import DriveState
 from state_machine.states.start_box.ready import ReadyState
 from state_machine.states.start_box.search import SearchState
 
@@ -22,6 +23,7 @@ class StartBoxStateMachine(StateWrappedStateMachine):
         state_classes = [
             SearchState,
             ReadyState,
+            DriveState,
         ]
 
         super().__init__(state_classes, debug)

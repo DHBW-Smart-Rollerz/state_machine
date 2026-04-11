@@ -442,6 +442,11 @@ class StateMachine(SmartyNode):
                     f"Target Pose direction publisher is running behind by {-wait_for:.2f} seconds."
                 )
             last_time = time.perf_counter()
+            if self.blackboard.drive_straight:
+                yasmin.YASMIN_LOG_WARN("Driving straight, ignoring lane coefficients")
+                self.target_pose_publisher_fun({"x": 0.0, "y": 0.0, "z": 0.0})
+                continue
+
             if self.blackboard.goal_lane in (Location.LEFT_LANE, Location.LEFT):
                 p = self.blackboard.lane_coefficients.get("left", None)
             elif self.blackboard.goal_lane in (Location.RIGHT_LANE, Location.RIGHT):
