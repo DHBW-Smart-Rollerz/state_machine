@@ -148,16 +148,6 @@ class StateMachine(SmartyNode):
         self.speed_limit_thread.start()
         self.target_pose_thread.start()
         self.path_planning_thread.start()
-
-        while self.blackboard.remote_state == 0 or self.blackboard.remote_state == 3:
-            yasmin.YASMIN_LOG_INFO(
-                f"Waiting for remote state to be in driving mode, current state: {self.blackboard.remote_state}"
-            )
-            time.sleep(0.1)
-        yasmin.YASMIN_LOG_INFO(
-            f"Remote state is now in driving mode, starting state machine, current state: {self.blackboard.remote_state}"
-        )
-
         self.state_machine_thread.start()
         self.log_blackboard_thread.start()
 
@@ -245,6 +235,14 @@ class StateMachine(SmartyNode):
 
     def _run_sm(self):
         """Wrap the custom BlackBoard into a yasmin Blackboard and run the state machine."""
+        while self.blackboard.remote_state == 0 or self.blackboard.remote_state == 3:
+            yasmin.YASMIN_LOG_INFO(
+                f"Waiting for remote state to be in driving mode, current state: {self.blackboard.remote_state}"
+            )
+            time.sleep(0.1)
+        yasmin.YASMIN_LOG_INFO(
+            f"Remote state is now in driving mode, starting state machine, current state: {self.blackboard.remote_state}"
+        )
         self.sm()
 
     def _add_state(self, state_class: yasmin.State):
@@ -274,8 +272,8 @@ class StateMachine(SmartyNode):
 
     def new_remote_state(self, msg: std_msgs.msg.UInt8):
         """Callback function for the remote state subscriber."""
-        # if self._debug:
-        #     self.get_logger().info(f"Remote State: {msg.data}")
+        if self._debug:
+            self.get_logger().info(f"Remote State: {msg.data}")
         self.blackboard.remote_state = msg.data
         return True
 
