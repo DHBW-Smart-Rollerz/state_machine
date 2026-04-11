@@ -15,3 +15,7 @@ class START_BOX_CONSTANTS:
 
     # Distance threshold for the start box detection
     DISTANCE_THRESH = 500  # millimeters
+
+    DRIVE_TIMEOUT = 4  # seconds
+
+    MAX_SPEED = 0.2 # m/s

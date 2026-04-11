@@ -278,7 +278,9 @@ class StateMachine(SmartyNode):
         # 5. Element: y2
         # 6. Element: confidence
         processed = set()
-        for line in msg.data:
+        lines = np.array(msg.data).reshape(-1, 6)
+        yasmin.YASMIN_LOG_INFO(f"Received crossing lines: {lines}")
+        for line in lines.tolist():
             if not isinstance(line, (list, tuple)) or len(line) != 6:
                 self.get_logger().error(
                     f"Invalid crossing line data: {line}, expected list/tuple of length 6."
@@ -419,7 +421,7 @@ class StateMachine(SmartyNode):
         """
         coefficients = coefficients[::-1]
         p = np.poly1d(coefficients[::-1])
-        x = 0.1
+        x = 0.3
         y = p(x)
         y__temp = y
         theta = +1 * math.atan(

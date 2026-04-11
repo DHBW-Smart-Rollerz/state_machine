@@ -28,4 +28,4 @@ class CONSTANTS:
     CROSSING_DETECTION_CONFIDENCE_THRESHOLD = (
         0.5  # Confidence threshold for crossing detection
     )
-    DRIVE_TIMEOUT = 2  # seconds
+    

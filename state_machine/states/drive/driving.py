@@ -77,7 +77,7 @@ class DrivingState(BaseState):
         super().local_execute()
 
         while True:
-            if self.blackboard.remote_state == 1:  # Free drive
+            if self.blackboard.remote_state == 1 or True:  # Free drive
                 self.log_state("Free drive")
                 time.sleep(0.0001)
                 continue
