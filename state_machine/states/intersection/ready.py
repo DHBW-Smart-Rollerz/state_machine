@@ -56,9 +56,9 @@ class ReadyState(BaseState):
                 CONSTANTS.INTERSECTION.START_DIST,
             ):
                 return (
-                    "start_stop"
+                    "start_crossing_stop"
                     if self.blackboard.use_crossing_detection
-                    else "start_crossing_stop"
+                    else "start_stop"
                 )
 
             if check_dist_to_obj_sign(
@@ -67,9 +67,9 @@ class ReadyState(BaseState):
                 CONSTANTS.INTERSECTION.GIVE_WAY_DIST,
             ):
                 return (
-                    "start_give_way"
+                    "start_crossing_give_way"
                     if self.blackboard.use_crossing_detection
-                    else "start_crossing_give_way"
+                    else "start_give_way"
                 )
 
             # Neither sign visible at drive threshold — assume already past the

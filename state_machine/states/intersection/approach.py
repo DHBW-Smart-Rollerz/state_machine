@@ -55,14 +55,13 @@ class ApproachStopCrossing(BaseState):
         """Initialize the ApproachStop."""
         self.TRANSITIONS = {
             "next": StopState.NAME,
-            "loop": self.NAME,
         }
         super().__init__(debug)
 
     def local_execute(self):
         """Execute the state."""
         super().local_execute()
-        start_time = self.blackboard.last_timestamp
+        start_time = time.perf_counter()
 
         while self._check_crossing_result():
             if (
@@ -113,14 +112,13 @@ class ApproachGiveWayCrossing(BaseState):
         """Initialize the ApproachGiveWay."""
         self.TRANSITIONS = {
             "next": GiveWayState.NAME,
-            "loop": self.NAME,
         }
         super().__init__(debug)
 
     def local_execute(self):
         """Execute the state."""
         super().local_execute()
-        start_time = self.blackboard.last_timestamp
+        start_time = time.perf_counter()
 
         while self._check_crossing_result():
             if (

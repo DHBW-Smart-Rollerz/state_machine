@@ -31,6 +31,7 @@ class ReadyState(BaseState):
             Nodes.PATH_PLANNING: NodeState.ACTIVE,
             Nodes.CONTROL: NodeState.ACTIVE,
             Nodes.STATE_ESTIMATION: NodeState.ACTIVE,
+            Nodes.CROSSING_DETECTION: NodeState.INACTIVE,
         },
     )
 

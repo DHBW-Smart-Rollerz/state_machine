@@ -28,7 +28,7 @@ class GiveWayState(BaseState):
     def local_execute(self):
         """Execute the state."""
         super().local_execute()
-        start_time = self.blackboard.last_timestamp
+        start_time = time.perf_counter()
 
         while (
             time.perf_counter() - start_time

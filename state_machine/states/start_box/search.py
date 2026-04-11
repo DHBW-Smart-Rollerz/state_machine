@@ -32,6 +32,7 @@ class SearchState(BaseState):
             Nodes.PATH_PLANNING: NodeState.INACTIVE,
             Nodes.CONTROL: NodeState.INACTIVE,
             Nodes.STATE_ESTIMATION: NodeState.INACTIVE,
+            Nodes.CROSSING_DETECTION: NodeState.INACTIVE,
         },
     )
 
