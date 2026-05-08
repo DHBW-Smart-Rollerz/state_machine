@@ -14,7 +14,7 @@ class GiveWayState(BaseState):
 
     NAME = "intersection-give_way"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL, max_speed=0.0
+        light_configuration=Light.NORMAL, max_speed=0.0
     )
 
     def __init__(self, debug: bool = False):

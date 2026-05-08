@@ -16,7 +16,7 @@ class ApproachStop(Approach):
 
     NAME = "intersection-approach-stop"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL,
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.INTERSECTION.APPROACH_SPEED,
     )
     APPROACH_DISTANCE = CONSTANTS.INTERSECTION.APPROACH_DISTANCE_BLIND
@@ -46,7 +46,7 @@ class ApproachStopCrossing(BaseState):
 
     NAME = "intersection-approach-stop-crossing"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL,
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.INTERSECTION.APPROACH_SPEED,
     )
     APPROACH_DISTANCE = CONSTANTS.INTERSECTION.APPROACH_DISTANCE
@@ -103,7 +103,7 @@ class ApproachGiveWayCrossing(BaseState):
 
     NAME = "intersection-approach-give-way-crossing"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL,
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.INTERSECTION.APPROACH_SPEED,
     )
     APPROACH_DISTANCE = CONSTANTS.INTERSECTION.APPROACH_DISTANCE

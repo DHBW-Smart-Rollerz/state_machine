@@ -1,4 +1,5 @@
 import time
+
 import yasmin
 from smarty_utils.enums import OBJECTS, Light
 
@@ -14,7 +15,7 @@ class DetectPedestrian(BaseState):
 
     NAME = "crosswalk-detect-pedestrian"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL,
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.CROSS_WALK.DETECT_SPEED,
     )
 

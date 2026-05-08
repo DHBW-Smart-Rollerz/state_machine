@@ -163,7 +163,7 @@ class StateMachine(SmartyNode):
         """Create the black board object."""
         # Define the blackboard
         light_configuration = TopicStateParameter(
-            "light_configuration", Light.BRAKE_NORMAL, Light, self.lights_publisher_fun
+            "light_configuration", Light.NORMAL, Light, self.lights_publisher_fun
         )
         max_speed = TopicStateParameter(
             "max_speed", 0.0, float, self.speed_limit_publisher_fun, 30

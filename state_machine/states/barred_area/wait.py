@@ -15,7 +15,7 @@ class WaitState(BaseState):
 
     NAME = "barred-area-wait"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL,
+        light_configuration=Light.NORMAL,
         max_speed=0.0,
     )
 
