@@ -118,7 +118,7 @@ def generate_launch_description():
     delayed_nodes = TimerAction(
         period=CAMERA_STARTUP_DELAY,
         actions=[
-            lane_detection,
+            #lane_detection,
             object_detection,
             tracking,
             pathplanning,

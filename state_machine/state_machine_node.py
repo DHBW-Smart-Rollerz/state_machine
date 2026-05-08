@@ -239,6 +239,7 @@ class StateMachine(SmartyNode):
             yasmin.YASMIN_LOG_INFO(
                 f"Waiting for remote state to be in driving mode, current state: {self.blackboard.remote_state}"
             )
+            self.blackboard.max_speed = 0
             time.sleep(0.1)
         yasmin.YASMIN_LOG_INFO(
             f"Remote state is now in driving mode, starting state machine, current state: {self.blackboard.remote_state}"
@@ -429,7 +430,7 @@ class StateMachine(SmartyNode):
         """
         coefficients = coefficients[::-1]
         p = np.poly1d(coefficients[::-1])
-        x = 0.3
+        x = 0.5
         y = p(x)
         y__temp = y
         theta = +1 * math.atan(
