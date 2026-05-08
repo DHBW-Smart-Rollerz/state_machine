@@ -9,11 +9,11 @@ class INTERSECTION_CONSTANTS:
     READY_TIMEOUT = 10
 
     # The time in seconds until the intersecting is canceled
-    TIMEOUT = 30  # s
-    WAIT_TIMEOUT = 5  # s
+    TIMEOUT = 15  # s TODO: CHECK THIS VALUE
+    WAIT_TIMEOUT = 10  # s
 
     # The distance to the object in front of the car when intersecting
-    VEHICLE_DIST = 1000  # mm
+    VEHICLE_DIST = 650  # mm TODO: CHECK THIS VALUE
 
     # The minimal time to check for cars
     STOP_NO_CAR_TIMEOUT = 3  # s

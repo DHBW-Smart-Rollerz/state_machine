@@ -31,6 +31,7 @@ from state_machine.components.state_parameter import (
 from state_machine.states import CONSTANTS
 from state_machine.states.barred_area.barred_area import BarredAreaState
 from state_machine.states.cross_walk.crosswalk import CrosswalkStateMachine
+from state_machine.states.drive import DRIVE_CONSTANTS
 from state_machine.states.drive.driving import DrivingState
 from state_machine.states.intersection.express_way import ExpressWayState
 from state_machine.states.intersection.intersection import IntersectionStateMachine
@@ -244,6 +245,12 @@ class StateMachine(SmartyNode):
         yasmin.YASMIN_LOG_INFO(
             f"Remote state is now in driving mode, starting state machine, current state: {self.blackboard.remote_state}"
         )
+        replace = (
+            DRIVE_CONSTANTS.FREE_DRIVE_SPEED
+            if self.blackboard.test_mode == 1
+            else DRIVE_CONSTANTS.OBSTACLE_DRIVE_SPEED
+        )
+        DRIVE_CONSTANTS.MAX_SPEED = max(DRIVE_CONSTANTS.MAX_SPEED, replace)
         self.sm()
 
     def _add_state(self, state_class: yasmin.State):
@@ -430,7 +437,7 @@ class StateMachine(SmartyNode):
         """
         coefficients = coefficients[::-1]
         p = np.poly1d(coefficients[::-1])
-        x = 0.5
+        x = 0.45 if self.blackboard.remote_state == 1 else 0.3
         y = p(x)
         y__temp = y
         theta = +1 * math.atan(

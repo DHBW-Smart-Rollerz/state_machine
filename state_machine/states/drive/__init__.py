@@ -25,5 +25,9 @@ class DRIVE_CONSTANTS:
     # Maximum Speed
     MAX_SPEED = 1.0  # m/s
 
+    OBSTACLE_DRIVE_SPEED = 0.8
+
+    FREE_DRIVE_SPEED = 1.0
+
     # State Timeout
     STATE_TIMEOUT = 5  # seconds
