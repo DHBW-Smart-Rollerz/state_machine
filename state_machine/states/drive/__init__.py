@@ -8,13 +8,13 @@ class DRIVE_CONSTANTS:
     BARRED_AREA_THRESHOLD = 800  # mm
 
     # Overtaking Threshold
-    OVERTAKING_THRESHOLD = 750  # mm
+    OVERTAKING_THRESHOLD = 900  # mm
 
     # Parking Area Threshold
     PARKING_THRESHOLD = 800  # mm
 
     # Intersection Threshold
-    INTERSECTION_THRESHOLD = 800  # mm
+    INTERSECTION_THRESHOLD = 600  # mm
 
     # Express Way Threshold
     EXPRESS_WAY_THRESHOLD = 800  # mm
@@ -25,7 +25,7 @@ class DRIVE_CONSTANTS:
     # Maximum Speed
     MAX_SPEED = 1.0  # m/s
 
-    OBSTACLE_DRIVE_SPEED = 0.8
+    OBSTACLE_DRIVE_SPEED = 0.5
 
     FREE_DRIVE_SPEED = 1.0
 

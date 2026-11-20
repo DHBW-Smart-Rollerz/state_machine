@@ -64,7 +64,8 @@ class SearchState(BaseState):
                 yasmin.YASMIN_LOG_WARN(
                     f"Start Box search timeout after {time.perf_counter() - self._init_time} seconds"
                 )
-                return "canceled"
+                yasmin.YASMIN_LOG_WARN("Continuing to ready state")
+                break
 
         return "start_sign_detected"
 

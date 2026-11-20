@@ -48,6 +48,7 @@ class ReadyState(BaseState):
         """Execute the state."""
         super().local_execute()
         start = time.perf_counter()
+        last_sign = None
 
         while time.perf_counter() - start < CONSTANTS.INTERSECTION.READY_TIMEOUT:
             if check_dist_to_obj_sign(
@@ -72,17 +73,42 @@ class ReadyState(BaseState):
                     else "start_give_way"
                 )
 
-            # Neither sign visible at drive threshold — assume already past the
-            # intersection, skip back to driving
+            # Remember which sign we saw while approaching, so that a sign
+            # leaving the camera's field of view does not skip the stop.
+            for sign in (SIGNS.STOP, SIGNS.GIVE_WAY):
+                if check_dist_to_obj_sign(
+                    self.blackboard.signs,
+                    [sign],
+                    DRIVE_CONSTANTS.INTERSECTION_THRESHOLD,
+                ):
+                    last_sign = sign
+
+            # Neither sign visible at drive threshold
             if not check_dist_to_obj_sign(
                 self.blackboard.signs,
                 [SIGNS.STOP, SIGNS.GIVE_WAY],
                 DRIVE_CONSTANTS.INTERSECTION_THRESHOLD,
             ):
+                if last_sign is not None:
+                    # The sign was seen before and is now too close/out of view:
+                    # we are at the intersection, so start the approach/stop.
+                    yasmin.YASMIN_LOG_WARN(
+                        f"Intersection: {last_sign} left view, starting approach"
+                    )
+                    if last_sign == SIGNS.STOP:
+                        return (
+                            "start_crossing_stop"
+                            if self.blackboard.use_crossing_detection
+                            else "start_stop"
+                        )
+                    return (
+                        "start_crossing_give_way"
+                        if self.blackboard.use_crossing_detection
+                        else "start_give_way"
+                    )
                 yasmin.YASMIN_LOG_WARN(
                     f"Intersection: sign lost, assuming zone passed — skipping, has signs: {self.blackboard.signs}"
                 )
-
                 return "canceled"
 
             self.log_state("Intersection: Searching for sign")

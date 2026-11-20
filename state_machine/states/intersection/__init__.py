@@ -13,7 +13,7 @@ class INTERSECTION_CONSTANTS:
     WAIT_TIMEOUT = 10  # s
 
     # The distance to the object in front of the car when intersecting
-    VEHICLE_DIST = 650  # mm TODO: CHECK THIS VALUE
+    VEHICLE_DIST = 750  # mm TODO: CHECK THIS VALUE
 
     # The minimal time to check for cars
     STOP_NO_CAR_TIMEOUT = 3  # s
@@ -22,6 +22,6 @@ class INTERSECTION_CONSTANTS:
     # Maximum speed in m/s
     MAX_SPEED = 0.1  # m/s
     APPROACH_SPEED = 0.1  # m/s
-    APPROACH_DISTANCE_BLIND = 800  # mm
+    APPROACH_DISTANCE_BLIND = 750  # mm
     APPROACH_DISTANCE = 800  # mm
     APPROACH_TIMEOUT = 2.3  # s # Fallback for crossing detection
