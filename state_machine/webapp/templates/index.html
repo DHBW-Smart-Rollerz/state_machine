@@ -12,11 +12,20 @@
     <header>
         <h1>ROS2 State Monitor</h1>
     </header>
-    <main>
+    <main id="layout">
+      <div id="left-col">
         <section id="state">
             <h2>Aktueller Zustand</h2>
             <div id="current-state">Lade...</div>
         </section>
+        <section id="visualization-section">
+            <h2>Top-Down View</h2>
+            <div id="canvas-wrapper">
+                <canvas id="scene-canvas"></canvas>
+            </div>
+        </section>
+      </div>
+      <div id="right-col">
         <section id="parameters">
             <h2>Parameter</h2>
             <table id="parameter-table">
@@ -51,13 +60,6 @@
             </table>
         </section>
 
-        <section id="visualization-section">
-            <h2>Top-Down View</h2>
-            <div id="canvas-wrapper">
-                <canvas id="scene-canvas"></canvas>
-            </div>
-        </section>
-
         <section>
             <h2>Detected Objects</h2>
             <table id="objects-table">
@@ -77,7 +79,8 @@
                     </tr>
                 </tbody>
             </table>
-
+        </section>
+        <section>
             <h2>Detected Signs</h2>
             <table id="signs-table">
                 <thead>
@@ -96,7 +99,8 @@
                     </tr>
                 </tbody>
             </table>
-
+        </section>
+        <section>
             <h2>Lane Coefficients</h2>
             <table id="lane-table">
                 <thead id="lane-table-head">
@@ -115,6 +119,7 @@
                 </tbody>
             </table>
         </section>
+      </div>
     </main>
     <script>
         // EventSource for SSE updates
@@ -294,14 +299,20 @@
         const ctx = canvas.getContext('2d');
 
         // View parameters (all world values are in mm)
-        const VIEW_X_MIN = -2000;   // mm ahead of the car (front axle at 0)
-        const VIEW_X_MAX = 4000;   // mm ahead
+        const VIEW_X_MIN = -200;   // mm ahead of the car (front axle at 0)
+        const VIEW_X_MAX = 3500;   // mm ahead
+        const LANE_RADIUS = 3000;  // mm – lane polynomial only trusted within 3 m (circular) around the car
         const VIEW_Y_HALF = 3000;   // mm left / right of centre
 
         function resizeCanvas() {
             const wrapper = document.getElementById('canvas-wrapper');
-            canvas.width = wrapper.clientWidth;
-            canvas.height = Math.round(canvas.width * 0.55);
+            const top = wrapper.getBoundingClientRect().top + window.scrollY;
+            const aspect = (VIEW_X_MAX - VIEW_X_MIN) / (2 * VIEW_Y_HALF); // height / width
+            const maxH = Math.max(300, window.innerHeight - top - 12);
+            const w = Math.max(200, Math.min(wrapper.clientWidth, maxH / aspect));
+            canvas.width = Math.round(w);
+            canvas.height = Math.round(w * aspect);
+            
         }
         resizeCanvas();
         window.addEventListener('resize', () => { resizeCanvas(); drawScene(lastData); });
@@ -334,7 +345,7 @@
 
         // Build a poly-path on the canvas between x = VIEW_X_MIN and VIEW_X_MAX.
         function polyPath(coefs, steps) {
-            const xStep = (VIEW_X_MAX - VIEW_X_MIN) / steps;
+            const xStep = (LANE_RADIUS - VIEW_X_MIN) / steps;
             ctx.beginPath();
             for (let i = 0; i <= steps; i++) {
                 const wx = VIEW_X_MIN + i * xStep;
@@ -381,7 +392,14 @@
             function centerY(wx) { return (evalPoly(leftCoefs, wx) + evalPoly(rightCoefs, wx)) / 2; }
 
             if (leftCoefs && rightCoefs) {
-                const xStep = (VIEW_X_MAX - VIEW_X_MIN) / STEPS;
+                // Clip lane drawing to a circle of LANE_RADIUS around the car
+                ctx.save();
+                const [ccx, ccy] = worldToCanvas(0, 0);
+                const [ex, ey] = worldToCanvas(LANE_RADIUS, LANE_RADIUS);
+                ctx.beginPath();
+                ctx.ellipse(ccx, ccy, Math.abs(ccx - ex), Math.abs(ccy - ey), 0, 0, 2 * Math.PI);
+                ctx.clip();
+                const xStep = (LANE_RADIUS - VIEW_X_MIN) / STEPS;
 
                 // ── Road fill ────────────────────────────────────────────────
                 ctx.beginPath();
@@ -435,7 +453,7 @@
 
                 // ── Centre line (dashed white) ───────────────────────────────
                 ctx.setLineDash([12, 10]);
-                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.strokeStyle = 'rgba(220,220,225,0.45)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 for (let i = 0; i <= STEPS; i++) {
@@ -447,7 +465,7 @@
                 ctx.setLineDash([]);
 
                 // ── Outer road edges (solid white) ───────────────────────────
-                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.strokeStyle = 'rgba(220,220,225,0.3)';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 for (let i = 0; i <= STEPS; i++) {
@@ -465,21 +483,22 @@
                 ctx.stroke();
 
                 // ── Lane lines (solid yellow) ────────────────────────────────
-                ctx.strokeStyle = '#f5c518';
+                ctx.strokeStyle = '#bfa63f';
                 ctx.lineWidth = 2.5;
                 polyPath(leftCoefs, STEPS); ctx.stroke();
                 polyPath(rightCoefs, STEPS); ctx.stroke();
+                ctx.restore();
             }
 
             // ── Grid / axes ─────────────────────────────────────────────────
             ctx.strokeStyle = 'rgba(255,255,255,0.08)';
             ctx.lineWidth = 1;
             // Horizontal grid lines every 500 mm
-            for (let wx = VIEW_X_MIN; wx <= VIEW_X_MAX; wx += 500) {
+            for (let wx = 0; wx <= VIEW_X_MAX; wx += 500) {
                 const [x1, y1] = worldToCanvas(wx, -VIEW_Y_HALF);
                 const [x2, y2] = worldToCanvas(wx, VIEW_Y_HALF);
                 ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                ctx.fillStyle = 'rgba(220,220,225,0.3)';
                 ctx.font = '10px monospace';
                 ctx.fillText(`${wx}mm`, x2 + 3, y2 + 3);
             }
@@ -511,15 +530,15 @@
                 ctx.moveTo(corners[0][0], corners[0][1]);
                 corners.forEach(([px, py]) => ctx.lineTo(px, py));
                 ctx.closePath();
-                ctx.fillStyle = 'rgba(30, 120, 255, 0.35)';
-                ctx.strokeStyle = '#1e78ff';
+                ctx.fillStyle = 'rgba(79, 120, 181, 0.3)';
+                ctx.strokeStyle = '#4f78b5';
                 ctx.lineWidth = 2;
                 ctx.fill();
                 ctx.stroke();
 
                 // Label
                 const [cx, cy] = worldToCanvas(wx, wy);
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = '#d4d4da';
                 ctx.font = 'bold 11px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillText(obj.name.split('.').pop(), cx, cy - 4);
@@ -544,13 +563,13 @@
                 ctx.lineTo(px, py + r);
                 ctx.lineTo(px - r, py);
                 ctx.closePath();
-                ctx.fillStyle = 'rgba(255, 160, 0, 0.5)';
-                ctx.strokeStyle = '#ffa000';
+                ctx.fillStyle = 'rgba(192, 138, 58, 0.4)';
+                ctx.strokeStyle = '#c08a3a';
                 ctx.lineWidth = 2;
                 ctx.fill();
                 ctx.stroke();
 
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = '#d4d4da';
                 ctx.font = 'bold 11px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillText(sign.name.split('.').pop(), px, py - r - 4);
@@ -570,20 +589,20 @@
             ctx.moveTo(carCorners[0][0], carCorners[0][1]);
             carCorners.forEach(([px, py]) => ctx.lineTo(px, py));
             ctx.closePath();
-            ctx.fillStyle = 'rgba(40, 167, 69, 0.6)';
-            ctx.strokeStyle = '#28a745';
+            ctx.fillStyle = 'rgba(79, 138, 95, 0.55)';
+            ctx.strokeStyle = '#4f8a5f';
             ctx.lineWidth = 2;
             ctx.fill();
             ctx.stroke();
             // Direction arrow
             const [ax0, ay0] = worldToCanvas(0, 0);
             const [ax1, ay1] = worldToCanvas(CAR_L / 2, 0);
-            ctx.strokeStyle = '#ffffff';
+            ctx.strokeStyle = '#d4d4da';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(ax0, ay0); ctx.lineTo(ax1, ay1); ctx.stroke();
             // Arrow head
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = '#d4d4da';
             ctx.beginPath();
             ctx.moveTo(ax1, ay1);
             ctx.lineTo(ax1 + 6, ay1 - 5);
@@ -595,15 +614,15 @@
             const legendX = 10, legendY = 12, lh = 16;
             ctx.font = '11px sans-serif';
             [
-                ['#28a745', 'Ego vehicle'],
-                ['#1e78ff', 'Object'],
-                ['#ffa000', 'Sign'],
-                ['#f5c518', 'Lane line'],
-                ['rgba(255,255,255,0.6)', 'Centre line'],
+                ['#4f8a5f', 'Ego vehicle'],
+                ['#4f78b5', 'Object'],
+                ['#c08a3a', 'Sign'],
+                ['#bfa63f', 'Lane line'],
+                ['rgba(220,220,225,0.45)', 'Centre line'],
             ].forEach(([color, label], i) => {
                 ctx.fillStyle = color;
                 ctx.fillRect(legendX, legendY + i * lh, 12, 10);
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fillStyle = 'rgba(220,220,225,0.7)';
                 ctx.fillText(label, legendX + 16, legendY + i * lh + 9);
             });
         }

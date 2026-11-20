@@ -16,7 +16,7 @@ table td {
 }
 
 table th {
-    background-color: #007BFF;
+    background-color: #4a6a94;
     color: white;
     font-weight: 600;
     text-transform: uppercase;
@@ -48,7 +48,7 @@ table tr td[colspan] {
 
 /* Object table specific styles */
 #objects-table th {
-    background-color: #0069d9;
+    background-color: #44628a;
 }
 
 #objects-table td {
@@ -57,12 +57,12 @@ table tr td[colspan] {
 
 /* Signs table specific styles */
 #signs-table th {
-    background-color: #17a2b8;
+    background-color: #4a8590;
 }
 
 /* Lane coefficients table specific styles */
 #lane-table th {
-    background-color: #6f42c1;
+    background-color: #6a5a94;
 }
 
 #lane-table tr td:first-child {
@@ -91,7 +91,7 @@ table tr td[colspan] {
 
 /* Current state styling */
 #current-state {
-    background-color: #28a745;
+    background-color: #4f8a5f;
     color: white;
     padding: 15px;
     border-radius: 4px;
@@ -177,4 +177,71 @@ table tbody tr:nth-child(even) {
 
 .debug-table tr:hover {
     background-color: transparent;
+}
+
+/* Layout: state + large top-down view on top, detail tables in two columns below */
+#layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 12px;
+}
+
+#left-col h2,
+#right-col h2 {
+    margin: 8px 0;
+    font-size: 1.1rem;
+}
+
+#left-col #current-state {
+    margin-bottom: 8px;
+}
+
+#canvas-wrapper {
+    display: flex;
+    justify-content: center;
+}
+
+#scene-canvas {
+    width: auto;
+}
+
+#right-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+    align-items: start;
+}
+
+#right-col table {
+    font-size: 0.85rem;
+}
+
+#right-col table th,
+#right-col table td {
+    padding: 6px 8px;
+}
+
+header h1 {
+    margin: 8px 12px;
+    font-size: 1.3rem;
+}
+
+@media (max-width: 900px) {
+    #right-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+body {
+    background-color: #eceef1;
+    color: #333;
+}
+
+table tbody tr:nth-child(even) {
+    background-color: #e4e7eb;
+}
+
+table tr:hover {
+    background-color: #dde1e6;
 }
