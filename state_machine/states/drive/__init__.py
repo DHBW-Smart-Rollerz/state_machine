@@ -29,5 +29,10 @@ class DRIVE_CONSTANTS:
 
     FREE_DRIVE_SPEED = 1.0
 
+    # Distance of the lateral controller's reference point in front of the car.
+    # The controller places the front axle at 0.26 m, so the look-ahead in front
+    # of the axle is LOOKAHEAD_DISTANCE - 0.26. Larger = smoother, but cuts curves.
+    LOOKAHEAD_DISTANCE = 0.0 # m
+
     # State Timeout
     STATE_TIMEOUT = 5  # seconds

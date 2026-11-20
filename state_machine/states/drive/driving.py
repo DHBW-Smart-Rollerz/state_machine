@@ -4,6 +4,7 @@ import yasmin
 from smarty_utils.enums import (
     OBJECTS,
     SIGNS,
+    DriveMode,
     Light,
     Location,
     Nodes,
@@ -77,7 +78,8 @@ class DrivingState(BaseState):
         super().local_execute()
 
         while True:
-            if self.blackboard.remote_state == 1:  # Free drive
+            # Free drive is lane following only
+            if self.blackboard.active_drive_mode == DriveMode.FREE_DRIVE.value:
                 self.log_state("Free drive")
                 time.sleep(0.0001)
                 continue

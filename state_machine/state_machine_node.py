@@ -14,10 +14,12 @@ from smarty_utils.enums import (
     OBJECTS,
     SIGNS,
     CrossingLineType,
+    DriveMode,
     Light,
     Location,
     Nodes,
     NodeState,
+    RemoteState,
     StateMachineTestModes,
 )
 from smarty_utils.smarty_node import SmartyNode
@@ -59,7 +61,7 @@ class StateMachine(SmartyNode):
             "state_machine",
             node_parameters={
                 # Subscriber topics
-                "remote_state_subscriber": "/remoteState",
+                "remote_state_subscriber": "/remote/rc_state",
                 "path_planning_left_subscriber": "/path_planning/target/left",
                 "path_planning_right_subscriber": "/path_planning/target/right",
                 "tracking_topic": "/tracking/state",
@@ -106,7 +108,7 @@ class StateMachine(SmartyNode):
                 ),
                 "drive_mode_topic": (
                     std_msgs.msg.UInt8,
-                    self.new_remote_state,
+                    self.new_drive_mode,
                     None,
                 ),
             },
@@ -127,7 +129,11 @@ class StateMachine(SmartyNode):
             node: AsyncParameterClient(self, node.value) for node in Nodes
         }
         self.blackboard = self.init_black_board()
+        self.blackboard.drive_mode = DriveMode.UNDEFINED.value
+        self.blackboard.active_drive_mode = DriveMode.UNDEFINED.value
         self.init_state_machine()
+        # Re-send node states periodically so late-starting or restarted nodes get them
+        self.node_state_resync_timer = self.create_timer(1.0, self._resync_node_states)
 
         # Execute the state machine
         self.speed_limit_thread = threading.Thread(target=self.speed_limit_fun)
@@ -192,9 +198,13 @@ class StateMachine(SmartyNode):
             Nodes.TRACKING,
             Nodes.CROSSING_DETECTION,
         ]:
+            # Tracking is not managed by any state, it must stay active for signs/objects
+            initial_state = (
+                NodeState.ACTIVE if node == Nodes.TRACKING else NodeState.INACTIVE
+            )
             node_states[node] = ParameterStateParameter(
                 f"{node.value}_state",
-                NodeState.INACTIVE.value,
+                initial_state.value,
                 int,
                 [node],
                 self.node_param_setter,
@@ -236,21 +246,32 @@ class StateMachine(SmartyNode):
 
     def _run_sm(self):
         """Wrap the custom BlackBoard into a yasmin Blackboard and run the state machine."""
-        while self.blackboard.remote_state == 0 or self.blackboard.remote_state == 3:
+        # Start only in autonomous mode with free drive or obstacle selected
+        drivable_modes = (DriveMode.FREE_DRIVE.value, DriveMode.OBSTACLE.value)
+        while (
+            self.blackboard.remote_state != RemoteState.AUTONOMOUS.value
+            or self.blackboard.drive_mode not in drivable_modes
+        ):
             yasmin.YASMIN_LOG_INFO(
-                f"Waiting for remote state to be in driving mode, current state: {self.blackboard.remote_state}"
+                f"Waiting for autonomous mode, rc_state: {self.blackboard.remote_state}, "
+                f"drive_mode: {self.blackboard.drive_mode}"
             )
-            self.blackboard.max_speed = 0
+            self.blackboard.max_speed = 0.0
             time.sleep(0.1)
+        # The drive mode is fixed for the whole run; switching it needs a restart
+        self.blackboard.active_drive_mode = self.blackboard.drive_mode
         yasmin.YASMIN_LOG_INFO(
-            f"Remote state is now in driving mode, starting state machine, current state: {self.blackboard.remote_state}"
+            f"Autonomous mode, starting state machine in "
+            f"{DriveMode(self.blackboard.active_drive_mode).name}"
         )
         replace = (
             DRIVE_CONSTANTS.FREE_DRIVE_SPEED
-            if self.blackboard.test_mode == 1
+            if self.blackboard.active_drive_mode == DriveMode.FREE_DRIVE.value
             else DRIVE_CONSTANTS.OBSTACLE_DRIVE_SPEED
         )
-        DRIVE_CONSTANTS.MAX_SPEED = max(DRIVE_CONSTANTS.MAX_SPEED, replace)
+        DRIVE_CONSTANTS.MAX_SPEED = min(DRIVE_CONSTANTS.MAX_SPEED, replace)
+        # The state description captured MAX_SPEED at import time, update it as well
+        DrivingState.STATE_DESCRIPTION.max_speed = DRIVE_CONSTANTS.MAX_SPEED
         self.sm()
 
     def _add_state(self, state_class: yasmin.State):
@@ -283,6 +304,11 @@ class StateMachine(SmartyNode):
         # if self._debug:
         #     self.get_logger().info(f"Remote State: {msg.data}")
         self.blackboard.remote_state = msg.data
+        return True
+
+    def new_drive_mode(self, msg: std_msgs.msg.UInt8):
+        """Callback function for the drive mode subscriber."""
+        self.blackboard.drive_mode = msg.data
         return True
 
     def new_crossing(self, msg: std_msgs.msg.Float32MultiArray):
@@ -433,18 +459,14 @@ class StateMachine(SmartyNode):
             coefficients (list): List of coefficients representing the polynomial.
 
         Returns:
-            tuple: Tuple containing (x, y, theta) representing the reference point coordinates and angle.
+            tuple: Tuple containing (x, y, theta) representing the reference point
+            coordinates in m and the lane heading at that point in degrees.
         """
-        coefficients = coefficients[::-1]
-        p = np.poly1d(coefficients[::-1])
-        x = 0.45 if self.blackboard.remote_state == 1 else 0.3
+        p = np.poly1d(coefficients)
+        x = DRIVE_CONSTANTS.LOOKAHEAD_DISTANCE
         y = p(x)
-        y__temp = y
-        theta = +1 * math.atan(
-            3 * coefficients[3] * ((y__temp) ** 2)
-            + 2 * coefficients[2] * (y__temp)
-            + coefficients[1]
-        )
+        # The controller (querregelung) expects the heading in degrees
+        theta = math.degrees(math.atan(p.deriv()(x)))
         return x, y, theta
 
     def target_pose_publisher_fun_thread(self):
@@ -477,10 +499,6 @@ class StateMachine(SmartyNode):
 
             target_coeffs = p.coefficients
             ref_x, ref_y, theta = self._ref_point_controller(target_coeffs)
-
-            if theta <= 0.3:
-                theta = theta / 4
-
             self.target_pose_publisher_fun({"x": ref_x, "y": ref_y, "z": theta})
 
     #################################
@@ -491,6 +509,9 @@ class StateMachine(SmartyNode):
         """Speed limit thread."""
         while rclpy.ok():
             time.sleep(0.001)
+            # Free drive is lane following only, speed limit signs are ignored
+            if self.blackboard.active_drive_mode == DriveMode.FREE_DRIVE.value:
+                continue
             if not self.blackboard.has_speed_limit and self._check_speed_limit(
                 lifted=False
             ):
@@ -553,6 +574,16 @@ class StateMachine(SmartyNode):
         future = client.set_parameters(params)
         future.add_done_callback(self.get_parameter_callback(node))
         return True
+
+    def _resync_node_states(self):
+        """Re-send the desired state to every reachable node."""
+        for node, state in self.blackboard.node_states.items():
+            client = self.node_state_clients[node]
+            if not client.services_are_ready():
+                continue
+            client.set_parameters(
+                [Parameter("state", Parameter.Type.INTEGER, int(state))]
+            )
 
     def get_parameter_callback(self, node: Nodes):
         """
