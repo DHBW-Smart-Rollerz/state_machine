@@ -28,10 +28,14 @@ def create_obj_sign(msg: state_msgs.msg.State, parent: any) -> list[dict]:
         list of dicts with keys: id, position, distance, location, name, timestamp
     """
     obj_ids = {e.value for e in OBJECTS}
+    sign_ids = {e.value for e in SIGNS}
 
     results = []
     for obj in msg.tracked_objects:
         assert isinstance(obj, state_msgs.msg.TrackedObject), "Invalid object type"
+        # Unknown class ids would raise in the enum constructor and kill the node
+        if int(obj.class_id) not in obj_ids | sign_ids:
+            continue
         obj_id = obj.tracked_id
         obj_position = {"x": obj.position_x, "y": obj.position_y}
         left_lane = parent.blackboard.lane_coefficients.get("left", None)

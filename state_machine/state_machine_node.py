@@ -590,7 +590,9 @@ class StateMachine(SmartyNode):
     def cancel_state(self):
         """Cancel the state machine."""
         self.sm.cancel_state()
-        self.state_machine_thread.join()
+        # States busy-wait without checking for cancellation; the thread is a daemon,
+        # so don't block shutdown on it
+        self.state_machine_thread.join(timeout=1.0)
 
 
 def main(args=None, debug: bool = True):

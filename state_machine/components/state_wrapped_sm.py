@@ -73,8 +73,10 @@ class StateWrappedStateMachine(BaseState):
         if self._run_sm:
             self._run_sm = False
             self.sm.cancel_state()
-            self._sm_watchdog.join()
-            self._sm_thread.join()
+            # Inner states busy-wait without checking for cancellation; the threads
+            # are daemons, so don't block shutdown on them
+            self._sm_watchdog.join(timeout=1.0)
+            self._sm_thread.join(timeout=1.0)
             self._first_call = True
         else:
             yasmin.YASMIN_LOG_WARN("Tried to Stop but State machine not running")
@@ -86,8 +88,10 @@ class StateWrappedStateMachine(BaseState):
             return
         yasmin.YASMIN_LOG_INFO("Starting internal state machine")
         self._run_sm = True
-        self._sm_thread = threading.Thread(target=self._sm_thread_fun)
-        self._sm_watchdog = threading.Thread(target=self._sm_watchdog_fun)
+        self._sm_thread = threading.Thread(target=self._sm_thread_fun, daemon=True)
+        self._sm_watchdog = threading.Thread(
+            target=self._sm_watchdog_fun, daemon=True
+        )
         self._sm_thread.start()
         self._sm_watchdog.start()
 

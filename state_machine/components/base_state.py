@@ -39,6 +39,8 @@ class BaseState(yasmin.State):
         update_black_board: bool = True,
     ) -> str:
         """Execute the state."""
+        # Timeouts are measured from entering the state, not from construction
+        self._init_time = time.perf_counter()
         if update_black_board:
             self.blackboard.update(self.STATE_DESCRIPTION)
         self.blackboard.current_state = self.NAME
