@@ -3,7 +3,15 @@ import time
 
 import numpy as np
 import yasmin
-from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
+from smarty_utils.enums import (
+    OBJECTS,
+    SIGNS,
+    Light,
+    Location,
+    Nodes,
+    NodeState,
+    StateMachineTestModes,
+)
 
 from state_machine.components.state_parameter import (
     ParameterStateParameter,
@@ -37,22 +45,32 @@ class StateDescription:
         self.node_states = node_states
 
 
-class BlackBoard(yasmin.Blackboard):
+class BlackBoard:
     """Describes the state including maximal speed, lane, and other parameters."""
+
+    instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """Generate a singleton instance of the blackboard."""
+        if cls.instance is None:
+            cls.instance = super(BlackBoard, cls).__new__(cls)
+        return cls.instance
 
     def __init__(
         self,
-        light_configuration: TopicStateParameter,
-        max_speed: TopicStateParameter,
-        goal_lane: TopicStateParameter,
-        car_lane: TopicStateParameter,
-        objects: StateParameter,
-        signs: StateParameter,
-        lane_coefficients: StateParameter,
-        last_state: TopicStateParameter,
-        last_timestamp: StateParameter,
-        node_states: dict[Nodes, ParameterStateParameter],
-        remote_state: StateParameter,
+        light_configuration: TopicStateParameter = None,
+        max_speed: TopicStateParameter = None,
+        goal_lane: TopicStateParameter = None,
+        car_lane: TopicStateParameter = None,
+        objects: StateParameter = None,
+        signs: StateParameter = None,
+        lane_coefficients: StateParameter = None,
+        last_state: TopicStateParameter = None,
+        last_timestamp: StateParameter = None,
+        node_states: dict[Nodes, ParameterStateParameter] = {},
+        remote_state: StateParameter = None,
+        test_mode: int = 0,
+        use_crossing_detection: bool = True,
     ):
         """
         Initialize the state description.
@@ -70,8 +88,41 @@ class BlackBoard(yasmin.Blackboard):
             node_states -- Node states
             remote_state -- Remote state
         """
-        super().__init__()
+        if hasattr(self, "_initialized") and self._initialized:
+            return
+        if any(
+            param is None
+            for param in [
+                light_configuration,
+                max_speed,
+                goal_lane,
+                car_lane,
+                objects,
+                signs,
+                lane_coefficients,
+                last_state,
+                last_timestamp,
+                remote_state,
+            ]
+        ):
+            raise ValueError(
+                "All parameters must be provided for BlackBoard initialization"
+            )
+        self._initialized = True
         self.__lock = threading.Lock()
+        self._initial_state = [
+            light_configuration.value,
+            max_speed.value,
+            goal_lane.value,
+            car_lane.value,
+            objects.value,
+            signs.value,
+            lane_coefficients.value,
+            last_state.value,
+            last_timestamp.value,
+            remote_state.value,
+            {key: p.value for key, p in node_states.items()},
+        ]
         self._light_configuration = light_configuration
         self._max_speed = max_speed
         self._goal_lane = goal_lane
@@ -87,6 +138,12 @@ class BlackBoard(yasmin.Blackboard):
         self._speed_limit = np.inf
         self._has_speed_limit = False
         self._free_drive = False
+        self._start_location = Location.UNKNOWN
+        self._other_parameters = {}
+        self._test_mode = test_mode
+        self._crossing_lines = []
+        self._use_crossing_detection = use_crossing_detection
+        self._drive_straight = False
 
     def update(self, state_description: StateDescription):
         """
@@ -111,6 +168,38 @@ class BlackBoard(yasmin.Blackboard):
         with self.__lock:
             self._has_speed_limit = False
             self._speed_limit = np.inf
+
+    def reset(self):
+        """Reset the blackboard to default values."""
+        with self.__lock:
+            for param, value in zip(
+                [
+                    self._light_configuration,
+                    self._max_speed,
+                    self._goal_lane,
+                    self._car_lane,
+                    self._objects,
+                    self._signs,
+                    self._lane_coefficients,
+                    self._last_state,
+                    self._last_timestamp,
+                    self._remote_state,
+                    self._node_states,
+                ],
+                self._initial_state,
+            ):
+                if isinstance(param, dict):
+                    # value is {Nodes: initial_int_value}
+                    for key, initial_value in value.items():
+                        if key in param:
+                            param[key].value = initial_value
+                else:
+                    param.value = value
+            self._current_state = "No State"
+            self._speed_limit = np.inf
+            self._has_speed_limit = False
+            self._free_drive = False
+            self._other_parameters = {}
 
     @property
     def light_configuration(self) -> Light:
@@ -257,6 +346,12 @@ class BlackBoard(yasmin.Blackboard):
         with self.__lock:
             return self._current_state
 
+    @current_state.setter
+    def current_state(self, state: str):
+        """Set the current state."""
+        with self.__lock:
+            self._current_state = state
+
     @property
     def node_states(self) -> dict[str, NodeState]:
         """Get the node states."""
@@ -282,6 +377,129 @@ class BlackBoard(yasmin.Blackboard):
         with self.__lock:
             self._remote_state.value = state
 
+    @property
+    def test_mode(self) -> int:
+        """Get the test mode."""
+        with self.__lock:
+            return self._test_mode
+
+    @property
+    def has_speed_limit(self) -> bool:
+        """Check if a speed limit is currently active."""
+        with self.__lock:
+            return self._has_speed_limit
+
+    @property
+    def start_location(self) -> Location:
+        """Get the start location."""
+        with self.__lock:
+            return self._start_location
+
+    @start_location.setter
+    def start_location(self, location: Location):
+        """Set the start location."""
+        with self.__lock:
+            self._start_location = location
+
+    @property
+    def crossing_lines(self) -> list[dict]:
+        """Get the distance to crossing."""
+        with self.__lock:
+            return self._crossing_lines
+
+    @crossing_lines.setter
+    def crossing_lines(self, lines: list[dict]):
+        """Set the distance to crossing."""
+        with self.__lock:
+            self._crossing_lines = lines
+
+    @property
+    def use_crossing_detection(self) -> bool:
+        """Check if crossing detection should be used."""
+        with self.__lock:
+            return self._use_crossing_detection
+
+    @property
+    def drive_straight(self) -> bool:
+        """Check if the car should drive straight."""
+        with self.__lock:
+            return self._drive_straight
+
+    @drive_straight.setter
+    def drive_straight(self, drive: bool):
+        """Set whether the car should drive straight."""
+        with self.__lock:
+            self._drive_straight = drive
+
+    def __getattr__(self, name: str):
+        """Get unknown attributes from other_parameters dict."""
+        # Prevent infinite recursion during early initialization
+        # __getattr__ is only called when normal lookup fails, so private
+        # attributes that are missing should raise immediately.
+        if name.startswith("_"):
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
+
+        # Check if it's a property on the class — if so, the fact that we
+        # reached __getattr__ means the underlying private attribute doesn't
+        # exist yet (early init). Raise AttributeError to signal that.
+        for cls in type(self).__mro__:
+            if name in cls.__dict__ and isinstance(cls.__dict__[name], property):
+                raise AttributeError(
+                    f"'{type(self).__name__}' property '{name}' is not yet initialized"
+                )
+
+        # Guard against access before __lock is initialized
+        try:
+            lock = object.__getattribute__(self, "_BlackBoard__lock")
+        except AttributeError:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
+
+        # Look up in _other_parameters with thread safety
+        with lock:
+            try:
+                other_params = object.__getattribute__(self, "_other_parameters")
+                if name in other_params:
+                    return other_params[name]
+            except AttributeError:
+                pass
+
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
+
+    def __setattr__(self, name: str, value):
+        """Set unknown attributes in other_parameters dict."""
+        # Allow private attributes to be set directly
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+
+        # Check if the attribute is a property (descriptor) on the class
+        for cls in type(self).__mro__:
+            if name in cls.__dict__:
+                attr = cls.__dict__[name]
+                if isinstance(attr, property):
+                    # Invoke the property setter
+                    attr.fset(self, value)
+                    return
+                else:
+                    # It's a regular class attribute, set it directly
+                    object.__setattr__(self, name, value)
+                    return
+
+        # Check if it's already in the instance dict
+        if name in self.__dict__:
+            object.__setattr__(self, name, value)
+            return
+
+        # Otherwise, store in _other_parameters
+        with self.__lock:
+            self._other_parameters[name] = value
+
     def __str__(self):
         """
         String representation of the blackboard.
@@ -289,4 +507,4 @@ class BlackBoard(yasmin.Blackboard):
         Returns:
             str -- String representation of the blackboard
         """
-        return f"Blackboard(signs={self._signs})"
+        return f"Blackboard(signs={self._signs}, objects={self._objects}, light_configuration={self._light_configuration}, max_speed={self._max_speed}, goal_lane={self._goal_lane}, car_lane={self._car_lane}, lane_coefficients={self._lane_coefficients}, last_state={self._last_state}, last_timestamp={self._last_timestamp}, node_states={{key: param.value for key, param in self._node_states.items()}}, remote_state={self._remote_state}, current_state={self._current_state})"

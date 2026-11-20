@@ -3,7 +3,7 @@ class BARRED_AREA_CONSTANTS:
 
     # The distance to the object in front of the car when intersecting
     START_DIST = 400  # mm
-    OBSTACLE_DIST = 1000  # mm
+    OBSTACLE_DIST = 2500  # mm
     APPROACH_DISTANCE = 400  # mm
     STAY_DISTANCE = 1500  # mm
 

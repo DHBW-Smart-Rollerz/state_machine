@@ -1,5 +1,6 @@
 import time
 
+import yasmin
 from smarty_utils.enums import OBJECTS, Light
 
 from state_machine.components.base_state import BaseState
@@ -14,7 +15,7 @@ class DetectPedestrian(BaseState):
 
     NAME = "crosswalk-detect-pedestrian"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL,
+        light_configuration=Light.NORMAL,
         max_speed=CONSTANTS.CROSS_WALK.DETECT_SPEED,
     )
 
@@ -26,18 +27,10 @@ class DetectPedestrian(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().execute(blackboard)
-        start_time = blackboard.last_timestamp
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
+        start_time = self.blackboard.last_timestamp
 
         while (
             time.perf_counter() - start_time

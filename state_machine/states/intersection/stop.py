@@ -15,7 +15,7 @@ class StopState(BaseState):
 
     NAME = "intersection-stop"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL, max_speed=0.0
+        light_configuration=Light.NORMAL, max_speed=0.0
     )
 
     def __init__(self, debug: bool = False):
@@ -26,18 +26,10 @@ class StopState(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().execute(blackboard)
-        start_time = blackboard.last_timestamp
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
+        start_time = time.perf_counter()
 
         while (
             time.perf_counter() - start_time

@@ -13,7 +13,7 @@ class BaseState(yasmin.State):
     NAME = "smarty"
     TRANSITIONS = {}
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL,
+        light_configuration=Light.NORMAL,
         max_speed=0.0,
         goal_lane=Location.RIGHT_LANE,
         node_states={
@@ -22,6 +22,7 @@ class BaseState(yasmin.State):
             Nodes.PATH_PLANNING: NodeState.INACTIVE,
             Nodes.CONTROL: NodeState.INACTIVE,
             Nodes.STATE_ESTIMATION: NodeState.INACTIVE,
+            Nodes.CROSSING_DETECTION: NodeState.INACTIVE,
         },
     )
 
@@ -30,38 +31,34 @@ class BaseState(yasmin.State):
         super().__init__(outcomes=list(self.TRANSITIONS.keys()))
         self._init_time = time.perf_counter()
         yasmin.YASMIN_LOG_INFO(f"Entering {self.NAME} state")
-        self.blackboard: BlackBoard = None
+        self.blackboard: BlackBoard = BlackBoard()
         self.last_log_time: float = 0
 
     def local_execute(
         self,
-        blackboard: BlackBoard,
         update_black_board: bool = True,
     ) -> str:
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- Blackboard object
-        """
+        """Execute the state."""
+        # Timeouts are measured from entering the state, not from construction
+        self._init_time = time.perf_counter()
         if update_black_board:
-            blackboard.update(self.STATE_DESCRIPTION)
-            blackboard._current_state = self.NAME
+            self.blackboard.update(self.STATE_DESCRIPTION)
+        self.blackboard.current_state = self.NAME
         yasmin.YASMIN_LOG_INFO(f"Executing {self.NAME} state")
-        self.blackboard = blackboard
         time.sleep(0.0001)
+        return "loop"
 
-    def execute(
-        self,
-        blackboard: BlackBoard,
-    ):
+    def execute(self, *args, **kwargs):
         """
         Execute the state.
 
         Arguments:
-            blackboard -- Blackboard object
+            blackboard -- BlackBoard
         """
-        output = self.local_execute(blackboard)
+        assert isinstance(
+            self.blackboard, BlackBoard
+        ), "custom_bb must be of type BlackBoard"
+        output = self.local_execute()
         self.set_last_state()
         return output
 

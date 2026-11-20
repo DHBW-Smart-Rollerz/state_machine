@@ -15,15 +15,7 @@ class ExpressWayState(BaseState):
         self.TRANSITIONS = {"dummy": DrivingState.NAME}  # TODO: Add transitions
         super().__init__()
 
-    def local_execute(self, blackboard: BlackBoard) -> str:
-        """
-        Executes the ExpressWayState.
-
-        Arguments:
-            blackboard -- Blackboard object
-
-        Returns:
-            str -- The outcome of the state
-        """
-        super().local_execute(blackboard)
+    def local_execute(self) -> str:
+        """Executes the ExpressWayState."""
+        super().local_execute()
         return "dummy"

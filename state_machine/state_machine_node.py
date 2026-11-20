@@ -1,15 +1,27 @@
+import math
 import threading
 import time
 
 import geometry_msgs.msg
 import numpy as np
 import rclpy
+import state_msgs.msg
 import std_msgs.msg
 import yasmin
-import yasmin_viewer
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
-from smarty_utils.enums import SIGNS, Light, Location, Nodes, NodeState
+from smarty_utils.enums import (
+    OBJECTS,
+    SIGNS,
+    CrossingLineType,
+    DriveMode,
+    Light,
+    Location,
+    Nodes,
+    NodeState,
+    RemoteState,
+    StateMachineTestModes,
+)
 from smarty_utils.smarty_node import SmartyNode
 
 from state_machine.components.state_description import BlackBoard
@@ -21,10 +33,11 @@ from state_machine.components.state_parameter import (
 from state_machine.states import CONSTANTS
 from state_machine.states.barred_area.barred_area import BarredAreaState
 from state_machine.states.cross_walk.crosswalk import CrosswalkStateMachine
+from state_machine.states.drive import DRIVE_CONSTANTS
 from state_machine.states.drive.driving import DrivingState
 from state_machine.states.intersection.express_way import ExpressWayState
 from state_machine.states.intersection.intersection import IntersectionStateMachine
-from state_machine.states.no_passing_zone import NoPassingZoneState
+from state_machine.states.no_passing_zone.no_passing_zone import NoPassingZoneState
 from state_machine.states.overtake.overtaking import OvertakingStateMachine
 from state_machine.states.parking import ParkingState
 from state_machine.states.start_box.startbox import StartBoxStateMachine
@@ -36,18 +49,24 @@ from state_machine.webapp.app import create_and_run_flask_app
 class StateMachine(SmartyNode):
     """State Machine."""
 
-    def __init__(self, debug: bool = False):
+    def __init__(
+        self,
+        debug: bool = False,
+        test_mode: int = StateMachineTestModes.NO_STARTBOX.value,
+        use_crossing_detection: bool = False,
+    ):
         """Initialize the state machine."""
         super().__init__(
             "state_machine_node",
             "state_machine",
             node_parameters={
                 # Subscriber topics
-                "remote_state_subscriber": "/remoteState",
+                "remote_state_subscriber": "/remote/rc_state",
                 "path_planning_left_subscriber": "/path_planning/target/left",
                 "path_planning_right_subscriber": "/path_planning/target/right",
-                "sign_topic": "/object_detection/sign",
-                "object_topic": "/object_detection/object",
+                "tracking_topic": "/tracking/state",
+                "target_pose_topic": "/path_planning/target/pose",
+                "crossing_detection_topic": "/crossing_detection/result",
                 # Publisher topics
                 "lights_topic": "/lights",
                 "speed_limit_topic": "/control/velocity/target",
@@ -55,8 +74,11 @@ class StateMachine(SmartyNode):
                 "goal_lane_topic": "/state_machine/goal_lane",
                 "debug_state_topic": "/state_machine/debug/state",
                 "drive_mode_topic": "/remote/drive_mode",
+                "path_planning_direction_topic": "/state_machine/path_planning/direction",
                 # Parameters
                 "debug": debug,
+                "use_crossing_detection": use_crossing_detection,
+                "test_mode": test_mode,
             },
             subscribed_topics={
                 "remote_state_subscriber": (
@@ -65,28 +87,28 @@ class StateMachine(SmartyNode):
                     None,
                 ),
                 "path_planning_left_subscriber": (
-                    geometry_msgs.msg.Vector3,
+                    std_msgs.msg.Float32MultiArray,
                     self.new_left_lane,
                     None,
                 ),
                 "path_planning_right_subscriber": (
-                    geometry_msgs.msg.Vector3,
+                    std_msgs.msg.Float32MultiArray,
                     self.new_right_lane,
                     None,
                 ),
-                "sign_topic": (
-                    std_msgs.msg.Float32MultiArray,
-                    self.sign_callback,
+                "tracking_topic": (
+                    state_msgs.msg.State,
+                    self.tracking_callback,
                     None,
                 ),
-                "object_topic": (
+                "crossing_detection_topic": (
                     std_msgs.msg.Float32MultiArray,
-                    self.object_callback,
+                    self.new_crossing,
                     None,
                 ),
                 "drive_mode_topic": (
                     std_msgs.msg.UInt8,
-                    self.new_remote_state,
+                    self.new_drive_mode,
                     None,
                 ),
             },
@@ -96,32 +118,50 @@ class StateMachine(SmartyNode):
                 "debug_state_topic": (std_msgs.msg.String, None),
                 "car_lane_topic": (std_msgs.msg.String, None),
                 "goal_lane_topic": (std_msgs.msg.String, None),
+                "target_pose_topic": (geometry_msgs.msg.Vector3, None),
+                "path_planning_direction_topic": (std_msgs.msg.String, None),
             },
         )
         self._logger.set_level(rclpy.logging.LoggingSeverity.DEBUG)
+        yasmin.YASMIN_LOG_INFO(f"Started with mode {test_mode}")
         # Initialize the state machine
         self.node_state_clients = {
             node: AsyncParameterClient(self, node.value) for node in Nodes
         }
         self.blackboard = self.init_black_board()
+        self.blackboard.drive_mode = DriveMode.UNDEFINED.value
+        self.blackboard.active_drive_mode = DriveMode.UNDEFINED.value
         self.init_state_machine()
+        # Re-send node states periodically so late-starting or restarted nodes get them
+        self.node_state_resync_timer = self.create_timer(1.0, self._resync_node_states)
 
         # Execute the state machine
-        self.speed_limit_thread = threading.Thread(
-            target=self.speed_limit_fun, args=(self.blackboard,)
+        self.speed_limit_thread = threading.Thread(target=self.speed_limit_fun)
+        self.target_pose_thread = threading.Thread(
+            target=self.target_pose_publisher_fun_thread
         )
-        self.state_machine_thread = threading.Thread(
-            target=lambda x: self.sm(x), args=(self.blackboard,)
+        self.path_planning_thread = threading.Thread(
+            target=self.path_planning_direction_publisher_fun_thread
+        )
+        self.state_machine_thread = threading.Thread(target=self._run_sm)
+        self.log_blackboard_thread = threading.Thread(
+            target=self.log_blackboard_thread_fun
         )
         self.speed_limit_thread.daemon = True
+        self.target_pose_thread.daemon = True
+        self.path_planning_thread.daemon = True
         self.state_machine_thread.daemon = True
+        self.log_blackboard_thread.daemon = True
         self.speed_limit_thread.start()
+        self.target_pose_thread.start()
+        self.path_planning_thread.start()
         self.state_machine_thread.start()
+        self.log_blackboard_thread.start()
 
         if self._debug:
             self.get_logger().info("State machine initialized.")
             self.app_thread = threading.Thread(
-                target=lambda: create_and_run_flask_app(self.blackboard),
+                target=create_and_run_flask_app, args=(self.blackboard,)
             )
             self.app_thread.daemon = True
             self.app_thread.start()
@@ -130,7 +170,7 @@ class StateMachine(SmartyNode):
         """Create the black board object."""
         # Define the blackboard
         light_configuration = TopicStateParameter(
-            "light_configuration", Light.BRAKE_NORMAL, Light, self.lights_publisher_fun
+            "light_configuration", Light.NORMAL, Light, self.lights_publisher_fun
         )
         max_speed = TopicStateParameter(
             "max_speed", 0.0, float, self.speed_limit_publisher_fun, 30
@@ -155,10 +195,16 @@ class StateMachine(SmartyNode):
             Nodes.PATH_PLANNING,
             Nodes.CONTROL,
             Nodes.STATE_ESTIMATION,
+            Nodes.TRACKING,
+            Nodes.CROSSING_DETECTION,
         ]:
+            # Tracking is not managed by any state, it must stay active for signs/objects
+            initial_state = (
+                NodeState.ACTIVE if node == Nodes.TRACKING else NodeState.INACTIVE
+            )
             node_states[node] = ParameterStateParameter(
                 f"{node.value}_state",
-                NodeState.INACTIVE.value,
+                initial_state.value,
                 int,
                 [node],
                 self.node_param_setter,
@@ -177,6 +223,8 @@ class StateMachine(SmartyNode):
             last_timestamp,
             node_states,
             remote_state,
+            int(self.get_parameter("test_mode").value),
+            bool(self.get_parameter("use_crossing_detection").value),
         )
 
     def init_state_machine(self):
@@ -196,8 +244,35 @@ class StateMachine(SmartyNode):
         ]
         [self._add_state(state_class) for state_class in state_classes]
 
-        if self._debug:
-            yasmin_viewer.YasminViewerPub("state_machine", self.sm)
+    def _run_sm(self):
+        """Wrap the custom BlackBoard into a yasmin Blackboard and run the state machine."""
+        # Start only in autonomous mode with free drive or obstacle selected
+        drivable_modes = (DriveMode.FREE_DRIVE.value, DriveMode.OBSTACLE.value)
+        while (
+            self.blackboard.remote_state != RemoteState.AUTONOMOUS.value
+            or self.blackboard.drive_mode not in drivable_modes
+        ):
+            yasmin.YASMIN_LOG_INFO(
+                f"Waiting for autonomous mode, rc_state: {self.blackboard.remote_state}, "
+                f"drive_mode: {self.blackboard.drive_mode}"
+            )
+            self.blackboard.max_speed = 0.0
+            time.sleep(0.1)
+        # The drive mode is fixed for the whole run; switching it needs a restart
+        self.blackboard.active_drive_mode = self.blackboard.drive_mode
+        yasmin.YASMIN_LOG_INFO(
+            f"Autonomous mode, starting state machine in "
+            f"{DriveMode(self.blackboard.active_drive_mode).name}"
+        )
+        replace = (
+            DRIVE_CONSTANTS.FREE_DRIVE_SPEED
+            if self.blackboard.active_drive_mode == DriveMode.FREE_DRIVE.value
+            else DRIVE_CONSTANTS.OBSTACLE_DRIVE_SPEED
+        )
+        DRIVE_CONSTANTS.MAX_SPEED = min(DRIVE_CONSTANTS.MAX_SPEED, replace)
+        # The state description captured MAX_SPEED at import time, update it as well
+        DrivingState.STATE_DESCRIPTION.max_speed = DRIVE_CONSTANTS.MAX_SPEED
+        self.sm()
 
     def _add_state(self, state_class: yasmin.State):
         """
@@ -213,15 +288,16 @@ class StateMachine(SmartyNode):
     # Callbacks for the subscribers
     ##############################
 
-    def object_callback(self, msg: std_msgs.msg.Float32MultiArray):
+    def tracking_callback(self, msg: state_msgs.msg.State):
         """Callback function for the object detection object subscriber."""
-        objects = create_obj_sign(msg, True, self)
-        self.blackboard.objects = objects
-
-    def sign_callback(self, msg: std_msgs.msg.Float32MultiArray):
-        """Callback function for the object detection sign subscriber."""
-        signs = create_obj_sign(msg, False, self)
-        self.blackboard.signs = signs
+        objects = create_obj_sign(msg, self)
+        self.blackboard.objects = [
+            obj for obj in objects if isinstance(obj["name"], OBJECTS)
+        ]
+        self.blackboard.signs = [
+            obj for obj in objects if isinstance(obj["name"], SIGNS)
+        ]
+        return True
 
     def new_remote_state(self, msg: std_msgs.msg.UInt8):
         """Callback function for the remote state subscriber."""
@@ -230,19 +306,59 @@ class StateMachine(SmartyNode):
         self.blackboard.remote_state = msg.data
         return True
 
-    def new_left_lane(self, msg: geometry_msgs.msg.Vector3):
+    def new_drive_mode(self, msg: std_msgs.msg.UInt8):
+        """Callback function for the drive mode subscriber."""
+        self.blackboard.drive_mode = msg.data
+        return True
+
+    def new_crossing(self, msg: std_msgs.msg.Float32MultiArray):
+        """Callback function for the crossing detection subscriber."""
+        # 1. Element: CrossingLineType
+        # 2. Element: x1
+        # 3. Element: y1
+        # 4. Element: x2
+        # 5. Element: y2
+        # 6. Element: confidence
+        processed = set()
+        lines = np.array(msg.data).reshape(-1, 6)
+        yasmin.YASMIN_LOG_INFO(f"Received crossing lines: {lines}")
+        for line in lines.tolist():
+            if not isinstance(line, (list, tuple)) or len(line) != 6:
+                self.get_logger().error(
+                    f"Invalid crossing line data: {line}, expected list/tuple of length 6."
+                )
+                continue
+            crossing_line = {
+                "type": CrossingLineType(int(line[0])),
+                "start": (line[1], line[2]),
+                "end": (line[3], line[4]),
+                "confidence": line[5],
+            }
+            if (
+                crossing_line["confidence"]
+                < CONSTANTS.CROSSING_DETECTION_CONFIDENCE_THRESHOLD
+            ):
+                continue
+            processed.add(tuple(crossing_line.items()))
+        self.blackboard.crossing_lines = []
+        self.blackboard.crossing_lines = [dict(line) for line in processed]
+        return True
+
+    def new_left_lane(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the left lane subscriber."""
-        line_coefs = [msg.x, msg.y, msg.z]
-        self.blackboard.lane_coefficients["left"] = np.poly1d(line_coefs)
+        # Coefficients arrive in low-to-high order [a₀, a₁, a₂] → a₀ + a₁·x + a₂·x²
+        line_coefs = list(msg.data)
+        self.blackboard.lane_coefficients["left"] = np.poly1d(np.array(line_coefs))
         left_lane = self.blackboard.lane_coefficients.get("left", None)
         right_lane = self.blackboard.lane_coefficients.get("right", None)
         self.blackboard.car_lane = get_car_location(left_lane, right_lane)
         return True
 
-    def new_right_lane(self, msg: geometry_msgs.msg.Vector3):
+    def new_right_lane(self, msg: std_msgs.msg.Float32MultiArray):
         """Callback function for the right lane subscriber."""
-        line_coefs = [msg.x, msg.y, msg.z]
-        self.blackboard.lane_coefficients["right"] = np.poly1d(line_coefs)
+        # Coefficients arrive in low-to-high order [a₀, a₁, a₂] → a₀ + a₁·x + a₂·x²
+        line_coefs = list(msg.data)
+        self.blackboard.lane_coefficients["right"] = np.poly1d(np.array(line_coefs))
         left_lane = self.blackboard.lane_coefficients.get("left", None)
         right_lane = self.blackboard.lane_coefficients.get("right", None)
         self.blackboard.car_lane = get_car_location(left_lane, right_lane)
@@ -287,34 +403,129 @@ class StateMachine(SmartyNode):
         self.debug_state_topic.publish(msg)
         return True
 
+    def target_pose_publisher_fun(self, target_pose: dict):
+        """Publish the target pose."""
+        msg = geometry_msgs.msg.Vector3()
+        msg.x = target_pose.get("x", 0.0)
+        msg.y = target_pose.get("y", 0.0)
+        msg.z = target_pose.get("z", 0.0)
+        self.target_pose_topic.publish(msg)
+        return True
+
+    def path_planning_direction_publisher_fun_thread(self):
+        """Publish the path planning direction."""
+        last_time = time.perf_counter()
+        while rclpy.ok():
+            slack = time.perf_counter() - last_time
+            wait_for = (1 / CONSTANTS.PUBLISH_HZ) - slack
+            if wait_for > 0:
+                time.sleep(wait_for)
+            else:
+                yasmin.YASMIN_LOG_WARN(
+                    f"Path planning direction publisher is running behind by {-wait_for:.2f} seconds."
+                )
+            last_time = time.perf_counter()
+            if check_dist_to_obj_sign(
+                self.blackboard.signs,
+                [SIGNS.TURN_LEFT],
+                CONSTANTS.TURNING_THRESHOLD,
+                location=Location.NOT_RELEVANT,
+            ):
+                direction = "left"
+            elif check_dist_to_obj_sign(
+                self.blackboard.signs,
+                [SIGNS.TURN_RIGHT],
+                CONSTANTS.TURNING_THRESHOLD,
+                location=Location.NOT_RELEVANT,
+            ):
+                direction = "right"
+            else:
+                direction = "straight"
+            msg = std_msgs.msg.String()
+            msg.data = direction
+            self.path_planning_direction_topic.publish(msg)
+
+    #################################
+    # Target pose publisher thread
+    #################################
+
+    def _ref_point_controller(
+        self, coefficients: list[float]
+    ) -> tuple[float, float, float]:
+        """
+        Determines reference points for the controller based on the provided polynomial coefficients.
+
+        Args:
+            coefficients (list): List of coefficients representing the polynomial.
+
+        Returns:
+            tuple: Tuple containing (x, y, theta) representing the reference point
+            coordinates in m and the lane heading at that point in degrees.
+        """
+        p = np.poly1d(coefficients)
+        x = DRIVE_CONSTANTS.LOOKAHEAD_DISTANCE
+        y = p(x)
+        # The controller (querregelung) expects the heading in degrees
+        theta = math.degrees(math.atan(p.deriv()(x)))
+        return x, y, theta
+
+    def target_pose_publisher_fun_thread(self):
+        """Target pose publisher thread."""
+        last_time = time.perf_counter()
+        while rclpy.ok():
+            slack = time.perf_counter() - last_time
+            wait_for = (1 / CONSTANTS.PUBLISH_HZ) - slack
+            if wait_for > 0:
+                time.sleep(wait_for)
+            else:
+                yasmin.YASMIN_LOG_WARN(
+                    f"Target Pose direction publisher is running behind by {-wait_for:.2f} seconds."
+                )
+            last_time = time.perf_counter()
+            if self.blackboard.drive_straight:
+                yasmin.YASMIN_LOG_WARN("Driving straight, ignoring lane coefficients")
+                self.target_pose_publisher_fun({"x": 0.0, "y": 0.0, "z": 0.0})
+                continue
+
+            if self.blackboard.goal_lane in (Location.LEFT_LANE, Location.LEFT):
+                p = self.blackboard.lane_coefficients.get("left", None)
+            elif self.blackboard.goal_lane in (Location.RIGHT_LANE, Location.RIGHT):
+                p = self.blackboard.lane_coefficients.get("right", None)
+            else:
+                p = None
+
+            if p is None:
+                continue
+
+            target_coeffs = p.coefficients
+            ref_x, ref_y, theta = self._ref_point_controller(target_coeffs)
+            self.target_pose_publisher_fun({"x": ref_x, "y": ref_y, "z": theta})
+
     #################################
     # Speed limit thread
     #################################
 
-    def speed_limit_fun(self, blackboard: BlackBoard):
-        """
-        Speed limit thread.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-        """
+    def speed_limit_fun(self):
+        """Speed limit thread."""
         while rclpy.ok():
             time.sleep(0.001)
-            if not blackboard._has_speed_limit and self._check_speed_limit(
-                blackboard, lifted=False
+            # Free drive is lane following only, speed limit signs are ignored
+            if self.blackboard.active_drive_mode == DriveMode.FREE_DRIVE.value:
+                continue
+            if not self.blackboard.has_speed_limit and self._check_speed_limit(
+                lifted=False
             ):
-                blackboard.speed_limit = CONSTANTS.SPEED_LIMIT_30
-            elif blackboard._has_speed_limit and self._check_speed_limit(
-                blackboard, lifted=True
+                self.blackboard.speed_limit = CONSTANTS.SPEED_LIMIT_30
+            elif self.blackboard.has_speed_limit and self._check_speed_limit(
+                lifted=True
             ):
-                blackboard.reset_speed_limit()
+                self.blackboard.reset_speed_limit()
 
-    def _check_speed_limit(self, blackboard: BlackBoard, lifted: bool) -> bool:
+    def _check_speed_limit(self, lifted: bool) -> bool:
         """
         Check if the speed limit is exceeded.
 
         Arguments:
-            blackboard -- The blackboard containing the state information
             lifted -- True if the speed limit is lifted, False otherwise
 
         Returns:
@@ -322,14 +533,14 @@ class StateMachine(SmartyNode):
         """
         if lifted:
             return check_dist_to_obj_sign(
-                blackboard.signs,
+                self.blackboard.signs,
                 [SIGNS.SPEED_LIMIT_30_LIFTED],
                 CONSTANTS.SPEED_LIMIT_THRESHOLD_30,
                 location=Location.NOT_RELEVANT,
             )
         else:
             return check_dist_to_obj_sign(
-                blackboard.signs,
+                self.blackboard.signs,
                 [SIGNS.SPEED_LIMIT_30],
                 CONSTANTS.SPEED_LIMIT_THRESHOLD_30,
                 location=Location.NOT_RELEVANT,
@@ -364,6 +575,16 @@ class StateMachine(SmartyNode):
         future.add_done_callback(self.get_parameter_callback(node))
         return True
 
+    def _resync_node_states(self):
+        """Re-send the desired state to every reachable node."""
+        for node, state in self.blackboard.node_states.items():
+            client = self.node_state_clients[node]
+            if not client.services_are_ready():
+                continue
+            client.set_parameters(
+                [Parameter("state", Parameter.Type.INTEGER, int(state))]
+            )
+
     def get_parameter_callback(self, node: Nodes):
         """
         Get the callback for the parameter setter.
@@ -391,13 +612,21 @@ class StateMachine(SmartyNode):
 
         return callback
 
+    def log_blackboard_thread_fun(self):
+        """Thread function to log the blackboard."""
+        while rclpy.ok():
+            time.sleep(5)
+            # yasmin.YASMIN_LOG_INFO(f"Current Blackboard State: {self.blackboard}")
+
     def cancel_state(self):
         """Cancel the state machine."""
         self.sm.cancel_state()
-        self.state_machine_thread.join()
+        # States busy-wait without checking for cancellation; the thread is a daemon,
+        # so don't block shutdown on it
+        self.state_machine_thread.join(timeout=1.0)
 
 
-def main(args=None, debug: bool = False):
+def main(args=None, debug: bool = True):
     """
     Main function to start the StateMachine.
 

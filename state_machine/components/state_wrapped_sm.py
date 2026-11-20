@@ -23,14 +23,15 @@ class StateWrappedStateMachine(BaseState):
         self._run_sm = False
         self._first_call = True
         self._timer = None
-        self.reset()
+        self._sm_thread = None
+        self._sm_watchdog = None
+        self._outcome = None
 
     def reset(self):
         """Reset the state."""
         if self._run_sm:
             yasmin.YASMIN_LOG_WARN("State machine is running, cannot reset")
             return
-        self.blackboard = None
         self._sm_thread = None
         self._sm_watchdog = None
         self._run_sm = False
@@ -41,25 +42,23 @@ class StateWrappedStateMachine(BaseState):
 
     def local_execute(
         self,
-        blackboard: BlackBoard,
         timeout_time: float = -1.0,
     ) -> str:
         """
         Execute the state and start the state machine.
 
         Arguments:
-            blackboard -- Blackboard object
             timeout_time -- Timeout in seconds (default: -1.0, no timeout)
 
         Returns:
             str -- Next state (loop) per default
         """
-        super().local_execute(blackboard, update_black_board=False)
+        super().local_execute(update_black_board=False)
         if self._first_call:
             self.reset()
+            # self.blackboard.current_state = self.NAME
             if timeout_time > 0:
                 self.start_timeout_timer(timeout_time)
-            self.blackboard = blackboard
             self._first_call = False
             self._start_sm()
 
@@ -74,8 +73,10 @@ class StateWrappedStateMachine(BaseState):
         if self._run_sm:
             self._run_sm = False
             self.sm.cancel_state()
-            self._sm_watchdog.join()
-            self._sm_thread.join()
+            # Inner states busy-wait without checking for cancellation; the threads
+            # are daemons, so don't block shutdown on them
+            self._sm_watchdog.join(timeout=1.0)
+            self._sm_thread.join(timeout=1.0)
             self._first_call = True
         else:
             yasmin.YASMIN_LOG_WARN("Tried to Stop but State machine not running")
@@ -87,8 +88,10 @@ class StateWrappedStateMachine(BaseState):
             return
         yasmin.YASMIN_LOG_INFO("Starting internal state machine")
         self._run_sm = True
-        self._sm_thread = threading.Thread(target=self._sm_thread_fun)
-        self._sm_watchdog = threading.Thread(target=self._sm_watchdog_fun)
+        self._sm_thread = threading.Thread(target=self._sm_thread_fun, daemon=True)
+        self._sm_watchdog = threading.Thread(
+            target=self._sm_watchdog_fun, daemon=True
+        )
         self._sm_thread.start()
         self._sm_watchdog.start()
 
@@ -98,7 +101,7 @@ class StateWrappedStateMachine(BaseState):
             raise ValueError("Blackboard is not set")
 
         self._run_sm = True
-        self._outcome = self.sm(self.blackboard)
+        self._outcome = self.sm()
         yasmin.YASMIN_LOG_WARN("Internal State Machine finished!")
         self._run_sm = False
 
@@ -119,9 +122,6 @@ class StateWrappedStateMachine(BaseState):
         """
         self.sm = yasmin.StateMachine(outcomes=["done", "canceled"])
         [self._add_state(state_class) for state_class in state_classes]
-
-        if self.debug:
-            yasmin_viewer.YasminViewerPub(f"{self.NAME}_state_machine", self.sm)
 
     def _add_state(self, state_class: yasmin.State):
         """
@@ -144,6 +144,6 @@ class StateWrappedStateMachine(BaseState):
         """Set the timeout for the state machine."""
         # Start timer to cancel state machine after timeout in seconds
         if timeout > 0:
-            self._timer = threading.Timer(timeout, self.cancel_state())
+            self._timer = threading.Timer(timeout, self.cancel_state)
             self._timer.start()
             yasmin.YASMIN_LOG_WARN("Canceld with timer.")

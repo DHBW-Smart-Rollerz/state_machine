@@ -1,10 +1,19 @@
 import time
-from datetime import datetime
-from zoneinfo import ZoneInfo
-from smarty_utils.enums import OBJECTS, SIGNS, Light, Location, Nodes, NodeState
+
+import yasmin
+from smarty_utils.enums import (
+    OBJECTS,
+    SIGNS,
+    DriveMode,
+    Light,
+    Location,
+    Nodes,
+    NodeState,
+    StateMachineTestModes,
+)
 
 from state_machine.components.base_state import BaseState
-from state_machine.components.state_description import BlackBoard, StateDescription
+from state_machine.components.state_description import StateDescription
 from state_machine.states import CONSTANTS
 from state_machine.utils.detectors import check_dist_to_obj_sign
 
@@ -23,6 +32,7 @@ class DrivingState(BaseState):
             Nodes.PATH_PLANNING: NodeState.ACTIVE,
             Nodes.CONTROL: NodeState.ACTIVE,
             Nodes.STATE_ESTIMATION: NodeState.ACTIVE,
+            Nodes.CROSSING_DETECTION: NodeState.INACTIVE,  # Activated in intersection approach if crossing detection is enabled
         },
     )
 
@@ -35,7 +45,9 @@ class DrivingState(BaseState):
         from state_machine.states.intersection.intersection import (
             IntersectionStateMachine,
         )
-        from state_machine.states.no_passing_zone import NoPassingZoneState
+        from state_machine.states.no_passing_zone.no_passing_zone import (
+            NoPassingZoneState,
+        )
         from state_machine.states.overtake.overtaking import OvertakingStateMachine
         from state_machine.states.parking import ParkingState
 
@@ -61,52 +73,57 @@ class DrivingState(BaseState):
         """
         return []
 
-    def local_execute(self, blackboard: BlackBoard) -> str:
-        """
-        Execute the DrivingState.
-
-        Arguments:
-            blackboard -- Blackboard object
-
-        Returns:
-            str -- name of the next state
-        """
-        super().local_execute(blackboard)
+    def local_execute(self) -> str:
+        """Execute the DrivingState."""
+        super().local_execute()
 
         while True:
-            if self.blackboard.remote_state == 1:  # Free drive
+            # Free drive is lane following only
+            if self.blackboard.active_drive_mode == DriveMode.FREE_DRIVE.value:
                 self.log_state("Free drive")
                 time.sleep(0.0001)
                 continue
 
-            if self._is_approaching_intersection() and self._check_last_state(
-                self.TRANSITIONS["approaching_intersection"]
+            if (
+                self._is_approaching_intersection()
+                and self._check_last_state(self.TRANSITIONS["approaching_intersection"])
+                and not self._check_test_mode(StateMachineTestModes.NO_INTERSECTION)
             ):
                 return "approaching_intersection"
             # elif self._is_approaching_parking_area() and self._check_last_state(
             #     self.TRANSITIONS["approaching_parking_area"]
             # ):
             #     return "approaching_parking_area"
-            # elif self._is_approaching_barred_area() and self._check_last_state(
-            #     self.TRANSITIONS["approaching_barred_area"]
-            # ):
-            #     return "approaching_barred_area"
-            # elif self._is_approaching_crosswalk() and self._check_last_state(
-            #     self.TRANSITIONS["approaching_crosswalk"]
-            # ):
-            #     return "approaching_crosswalk"
+            elif (
+                self._is_approaching_barred_area()
+                and self._check_last_state(self.TRANSITIONS["approaching_barred_area"])
+                and not self._check_test_mode(StateMachineTestModes.NO_BARRED_AREA)
+            ):
+                return "approaching_barred_area"
+            elif (
+                self._is_approaching_crosswalk()
+                and self._check_last_state(self.TRANSITIONS["approaching_crosswalk"])
+                and not self._check_test_mode(StateMachineTestModes.NO_CROSSWALK)
+            ):
+                return "approaching_crosswalk"
             # elif self._is_approaching_express_way() and self._check_last_state(
             #     self.TRANSITIONS["approaching_express_way"]
             # ):
             #     return "approaching_express_way"
-            # elif self._is_approaching_no_passing_zone() and self._check_last_state(
-            #     self.TRANSITIONS["approaching_no_passing_zone"]
-            # ):
-            #     return "approaching_no_passing_zone"
-            # elif self._is_approaching_obstacle() and self._check_last_state(
-            #     self.TRANSITIONS["approaching_obstacle"]
-            # ):
-            #     return "approaching_obstacle"
+            elif (
+                self._is_approaching_no_passing_zone()
+                and self._check_last_state(
+                    self.TRANSITIONS["approaching_no_passing_zone"]
+                )
+                and not self._check_test_mode(StateMachineTestModes.NO_NO_PASSING_ZONE)
+            ):
+                return "approaching_no_passing_zone"
+            elif (
+                self._is_approaching_obstacle()
+                and self._check_last_state(self.TRANSITIONS["approaching_obstacle"])
+                and not self._check_test_mode(StateMachineTestModes.NO_OVERTAKING)
+            ):
+                return "approaching_obstacle"
             self.log_state("Driving normally")
             time.sleep(0.0001)
 
@@ -188,3 +205,7 @@ class DrivingState(BaseState):
             CONSTANTS.DRIVE.NO_PASSING_ZONE_THRESHOLD,
             location=Location.NOT_RELEVANT,
         )
+
+    def _check_test_mode(self, mode: StateMachineTestModes) -> bool:
+        """Check if the current test mode is the given mode."""
+        return StateMachineTestModes.use(self.blackboard.test_mode, mode)

@@ -13,7 +13,7 @@ class WaitState(BaseState):
 
     NAME = "crosswalk-wait"
     STATE_DESCRIPTION = StateDescription(
-        light_configuration=Light.BRAKE_NORMAL,
+        light_configuration=Light.NORMAL,
         max_speed=0.0,
     )
 
@@ -24,17 +24,9 @@ class WaitState(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().execute(blackboard)
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
 
         start_location = Location.UNKNOWN
         while start_location == Location.UNKNOWN:
@@ -55,32 +47,42 @@ class WaitState(BaseState):
         """
         Check if the pedestrian has crossed the Crosswalk.
 
+        The pedestrian is considered to have crossed when they:
+          - appear at the opposite side of the road (out-of-lane), OR
+          - appear in the opposite lane (in-lane opposite), OR
+          - are no longer visible within the crosswalk distance
+
         Arguments:
             start_location -- The starting location of the pedestrian
 
         Returns:
             bool -- True if the pedestrian has crossed the Crosswalk, False otherwise
         """
-        return (
-            check_dist_to_obj_sign(
-                self.blackboard.objects,
-                [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
-                CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
-                Location.opposite(start_location, True),
-            )
-            or check_dist_to_obj_sign(
-                self.blackboard.objects,
-                [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
-                CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
-                Location.UNKNOWN,
-            )
-            or not check_dist_to_obj_sign(
-                self.blackboard.objects,
-                [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
-                CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
-                Location.NOT_RELEVANT,
-            )
+        # Opposite outside-road zone (e.g. LEFT → RIGHT, RIGHT_LANE → LEFT)
+        opposite_out = Location.opposite(start_location, True)
+        # Opposite lane zone (e.g. LEFT → RIGHT, LEFT_LANE → RIGHT_LANE)
+        opposite_in = Location.opposite(start_location, False)
+
+        reached_opposite = check_dist_to_obj_sign(
+            self.blackboard.objects,
+            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
+            CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
+            opposite_out,
+        ) or check_dist_to_obj_sign(
+            self.blackboard.objects,
+            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
+            CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
+            opposite_in,
         )
+
+        disappeared = not check_dist_to_obj_sign(
+            self.blackboard.objects,
+            [OBJECTS.VEHICLE, OBJECTS.PEDESTRIAN],
+            CONSTANTS.CROSS_WALK.PEDESTRIAN_DIST,
+            Location.NOT_RELEVANT,
+        )
+
+        return reached_opposite or disappeared
 
     def get_start_location(self):
         """

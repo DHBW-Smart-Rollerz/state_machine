@@ -24,17 +24,9 @@ class StayState(BaseState):
         self._delay_start_time = None
         self._rest_time = 0.0
 
-    def local_execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().local_execute(blackboard)
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
 
         # Check if the barred area is done
         while not self.check_area_done():

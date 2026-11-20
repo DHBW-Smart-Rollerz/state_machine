@@ -22,18 +22,10 @@ class Approach(BaseState):
         }
         super().__init__(debug)
 
-    def execute(self, blackboard: BlackBoard):
-        """
-        Execute the state.
-
-        Arguments:
-            blackboard -- The blackboard containing the state information
-
-        Returns:
-            str -- The next state to transition to
-        """
-        super().execute(blackboard)
-        start_time = blackboard.last_timestamp
+    def local_execute(self):
+        """Execute the state."""
+        super().local_execute()
+        start_time = self.blackboard.last_timestamp
 
         time_to_wait = (self.APPROACH_DISTANCE / 1000) / self.blackboard.max_speed
         while time.perf_counter() - start_time <= time_to_wait:
